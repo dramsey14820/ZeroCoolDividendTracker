@@ -39,9 +39,10 @@ This repository uses the **ZeroCool AI Coding Pipeline**, a 6-stage hybrid workf
    - On failure, feed **only** the concise compiler/test errors and the affected file(s) to `qwen3.5:9b`.
    - **Hard Escalation Cap**: Maximum **2 local retry attempts**. If the build or tests are still red after attempt 2, stop local retries and escalate to **Gemini (High/Medium)** with the exact error output and minimal diff.
 6. **Stage 6 — Two-Tier Quality Gate & Code Review**
-   - **Deterministic Gate**: `dotnet build -warnaserror` and `dotnet test` must both pass with zero warnings and zero failures.
-   - **Pass-1 Local Diff Review (`qwen3.5:9b`)**: Review `git diff --staged` against `.agents/rules/csharp-standards.md` and the active slice's Gherkin scenarios to catch obvious defects, missing edge cases, or rule violations.
-   - **Pass-2 Architectural & Security Audit (Gemini High/Medium)**: Review `git diff --staged` for architectural alignment, security vulnerabilities (SQL injection, auth/authz, secret handling), contract compliance, and cross-slice impact before committing.
+   - **Deterministic Gate**: `dotnet build -warnaserror` (with `Directory.Build.props` Roslyn analyzers) and `dotnet test` must both pass with zero warnings and zero failures.
+   - **Pass-1 Local Diff Review (`qwen3.5:9b`)**: Review filtered `git diff --staged` via `.ai/run-stage.ps1 -Stage Review` against `.agents/rules/csharp-standards.md` and the active slice's Gherkin scenarios.
+   - **Pass-2 Architectural & Security Audit (Gemini High/Medium — Risk-Gated)**: Required for `Risk: High` slices (auth, SQL/data, new `I*Service` contracts, MAUI/WiX host changes, external HTTP, or Stage 5 escalations). Low-risk slices (CSS/layout tweaks, copy, or established CRUD) can commit after Pass-1 and be audited in a milestone batch.
+   - **Post-Commit**: Run `.ai/update-repo-map.ps1` to refresh `.ai/repo-map.md`, and start a fresh Gemini chat for the next slice.
 
 ---
 
@@ -64,8 +65,14 @@ To prevent VRAM spillover and context degradation on the RTX 4060 (8 GB VRAM), *
 ## Supporting Pipeline Files
 
 - **Project Rulebook**: `.ai/constitution.md`
+- **Deterministic Build Analyzers**: `Directory.Build.props` & `.editorconfig`
+- **Compact Repo Signature Index**: `.ai/repo-map.md` *(regenerated via `.ai/update-repo-map.ps1`)*
+- **Golden Slice Reference**: `.ai/golden-slice-example.md` *(pass `-IncludeGoldenExample` on early slices)*
+- **Stage 5 Verification Helper**: `.ai/verify-slice.ps1` *(runs build/tests & writes concise `.ai/last-error.txt`)*
 - **C# / .NET Standards**: `.agents/rules/csharp-standards.md`
 - **Blazor & MAUI UI Standards**: `.agents/rules/blazor-maui-ui.md`
+- **Interactive Stage Guide**: `.agents/skills/pipeline-guide/SKILL.md` *(ask "Guide me through the next stage" to auto-detect and walk through Stages 1–6)*
 - **Slice Execution Workflow**: `.agents/skills/feature-slice/SKILL.md`
+- **Local Ollama Stage Runner**: `.ai/run-stage.ps1` *(invokes `http://localhost:11434` with `num_ctx: 8192` for Stages 3–5 and Stage 6 Pass-1)*
 - **Slice Spec Template**: `.ai/slices/slice-template.md`
 
