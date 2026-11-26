@@ -40,7 +40,7 @@ Follow this exact 5-step workflow to implement **one** vertical slice at a time.
 - **Model**: Local Ollama `qwen2.5-coder:7b` (`num_ctx: 8192`).
 - Implement the target files listed in `.ai/slices/slice-XX.md` against the defined DTOs, interfaces, and SQL schema.
 - Enforce all constraints:
-  - Modern C# (.NET 8 / .NET 10), nullable reference types enabled, file-scoped namespaces.
+  - Modern C# (.NET 10+ LTS), nullable reference types enabled, file-scoped namespaces.
   - Explicit `Program` class with `static void Main` (no top-level statements).
   - Parameterized SQL / safe EF Core queries, `CancellationToken` propagation, no unrequested refactoring outside the slice's target files.
 

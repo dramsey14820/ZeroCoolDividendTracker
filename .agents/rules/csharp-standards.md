@@ -4,7 +4,7 @@ All C# code generated or modified in this repository must strictly follow these 
 
 ## 1. Runtime & Project Configuration
 
-- **Target Framework**: Modern .NET (`.NET 8` or `.NET 10` LTS/Current as configured in the solution).
+- **Target Framework**: Modern .NET (`.NET 10+`, LTS releases only).
 - **Nullable Reference Types**: Always enabled (`<Nullable>enable</Nullable>`). Never suppress nullability warnings with `!` unless justified by a framework guarantee and documented.
 - **Warnings as Errors**: Code must compile cleanly under `dotnet build -warnaserror`.
 - **Namespaces**: Use file-scoped namespaces (`namespace MyApp.Features.Orders;`).

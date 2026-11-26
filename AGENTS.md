@@ -65,6 +65,7 @@ To prevent VRAM spillover and context degradation on the RTX 4060 (8 GB VRAM), *
 
 - **Project Rulebook**: `.ai/constitution.md`
 - **C# / .NET Standards**: `.agents/rules/csharp-standards.md`
+- **Blazor & MAUI UI Standards**: `.agents/rules/blazor-maui-ui.md`
 - **Slice Execution Workflow**: `.agents/skills/feature-slice/SKILL.md`
 - **Slice Spec Template**: `.ai/slices/slice-template.md`
 
