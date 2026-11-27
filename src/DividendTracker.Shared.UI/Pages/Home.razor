@@ -1,0 +1,39 @@
+@page "/"
+@inject IAppInfoService AppInfoService
+
+@{
+    var appInfo = AppInfoService.GetAppInfo();
+}
+
+<section class="home-container">
+    <header class="home-hero">
+        <h1>@appInfo.ApplicationName</h1>
+        <div class="home-meta">
+            <span class="meta-badge">@appInfo.PlatformName</span>
+            <span class="meta-version">v@(appInfo.Version)</span>
+        </div>
+        <p class="home-subtitle">
+            Track dividend portfolios, DRIP reinvestments, yield on cost, and income growth across Web, Windows, and Android.
+        </p>
+    </header>
+
+    <div class="home-grid">
+        <article class="overview-card">
+            <h2>Portfolios</h2>
+            <p>Organize actual and modelled dividend portfolios and accounts.</p>
+        </article>
+        <article class="overview-card">
+            <h2>Holdings</h2>
+            <p>Track fractional share buys, cost basis, and DRIP positions.</p>
+        </article>
+        <article class="overview-card">
+            <h2>Dividends</h2>
+            <p>Log payouts, import history, and measure compounding income.</p>
+        </article>
+        <article class="overview-card">
+            <h2>Analytics</h2>
+            <p>Inspect current yield, yield on cost, and sector allocation.</p>
+        </article>
+    </div>
+</section>
+

@@ -1,0 +1,66 @@
+.home-container {
+    display: grid;
+    gap: var(--space-lg);
+}
+
+.home-hero {
+    display: grid;
+    gap: var(--space-sm);
+    padding: var(--space-lg);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+}
+
+.home-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.meta-badge {
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-sm);
+    background-color: var(--color-primary-subtle);
+    color: var(--color-primary);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.meta-version {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+}
+
+.home-subtitle {
+    margin: 0;
+    color: var(--color-text-muted);
+}
+
+.home-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-md);
+}
+
+.overview-card {
+    display: grid;
+    gap: var(--space-xs);
+    padding: var(--space-md);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.overview-card h2 {
+    margin: 0;
+    font-size: 1.05rem;
+}
+
+.overview-card p {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: 0.925rem;
+}
+

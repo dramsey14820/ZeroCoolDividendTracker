@@ -7,6 +7,15 @@ namespace DividendTracker.Tests.Features.Shell;
 
 public sealed class MainLayoutComponentTests : BunitContext
 {
+    private static readonly string[] ExpectedNavLinks =
+    [
+        "Dashboard",
+        "Portfolios",
+        "Holdings",
+        "Dividends",
+        "Settings",
+    ];
+
     [Fact]
     public void NavMenu_WhenRendered_DisplaysPrimaryNavigationLinks()
     {
@@ -16,8 +25,7 @@ public sealed class MainLayoutComponentTests : BunitContext
         // Assert
         var links = cut.FindAll("a");
         links.Should().HaveCount(5);
-        links.Select(a => a.TextContent.Trim()).Should().BeEquivalentTo(
-            new[] { "Dashboard", "Portfolios", "Holdings", "Dividends", "Settings" });
+        links.Select(a => a.TextContent.Trim()).Should().BeEquivalentTo(ExpectedNavLinks);
     }
 
     [Fact]
