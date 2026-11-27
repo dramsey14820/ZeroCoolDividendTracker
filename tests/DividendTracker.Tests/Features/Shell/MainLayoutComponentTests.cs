@@ -11,6 +11,7 @@ public sealed class MainLayoutComponentTests : BunitContext
     [
         "Dashboard",
         "Portfolios",
+        "Securities",
         "Holdings",
         "Dividends",
         "Settings",
@@ -24,7 +25,7 @@ public sealed class MainLayoutComponentTests : BunitContext
 
         // Assert
         var links = cut.FindAll("a");
-        links.Should().HaveCount(5);
+        links.Should().HaveCount(6);
         links.Select(a => a.TextContent.Trim()).Should().BeEquivalentTo(ExpectedNavLinks);
     }
 
