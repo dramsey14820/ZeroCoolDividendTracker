@@ -1,7 +1,7 @@
 # Business Requirements Brief — ZeroCoolDividendTracker (v1)
 
 > **Stage**: 1 (Business Requirements Brief)
-> **Status**: Draft — Awaiting User Approval
+> **Status**: Approved
 
 ## 1. Problem Statement & Target Users
 
@@ -80,9 +80,9 @@ Modernized from the user's legacy SQLite schema (`investments`, `investmentTypes
 | **Tiingo** | Free API key | Generous EOD free tier | EOD / limited live | Yes (distributions) | No | Reliable official EOD + dividend adjustments |
 | **Alpha Vantage** | Free API key | 25 calls/day | Yes | Yes | Overview endpoint | Too tight for refreshing medium portfolios daily |
 
-**Recommended v1 Design**:
+**Approved v1 Design**:
 - Define a pluggable `IMarketDataProvider` interface behind local SQLite caching.
-- Ship with a **zero-key default provider** (Yahoo Finance HTTP endpoint) and/or an **official free API-key provider** (e.g., **Finnhub** or **FMP**) configurable in app settings, so the app works out-of-the-box and remains resilient if an unofficial endpoint changes.
+- Ship with **Yahoo Finance** (direct `HttpClient`, zero API key) as the out-of-the-box default provider, plus **Finnhub** and **Financial Modeling Prep (FMP)** as user-configurable official free-key providers in Settings.
 
 ---
 
