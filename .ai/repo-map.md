@@ -9,6 +9,10 @@
 - `src/DividendTracker.Core/Features/Portfolios/PortfolioDtos.cs`: public sealed record AccountDto(; public sealed record PortfolioDto(; public sealed record CreatePortfolioRequest(; public sealed record UpdatePortfolioRequest(; public sealed record CreateAccountRequest(; public sealed record UpdateAccountRequest(
 - `src/DividendTracker.Core/Features/Portfolios/PortfolioService.cs`: public sealed class PortfolioService : IPortfolioService
 - `src/DividendTracker.Core/Features/Portfolios/PortfolioServiceCollectionExtensions.cs`: public static class PortfolioServiceCollectionExtensions
+- `src/DividendTracker.Core/Features/Securities/ISecurityService.cs`: public interface ISecurityService
+- `src/DividendTracker.Core/Features/Securities/SecurityDtos.cs`: public enum LookupCategory; public sealed record LookupItemDto(; public sealed record LookupCatalogDto(; public sealed record CreateLookupRequest(; public sealed record UpdateLookupRequest(; public sealed record SecurityDto(; public sealed record CreateSecurityRequest(; public sealed record UpdateSecurityRequest(
+- `src/DividendTracker.Core/Features/Securities/SecurityService.cs`: public sealed class SecurityService : ISecurityService
+- `src/DividendTracker.Core/Features/Securities/SecurityServiceCollectionExtensions.cs`: public static class SecurityServiceCollectionExtensions
 - `src/DividendTracker.Core/Infrastructure/Persistence/DecimalTextTypeHandler.cs`: public sealed class DecimalTextTypeHandler : SqlMapper.TypeHandler<decimal>
 - `src/DividendTracker.Core/Infrastructure/Persistence/IDatabaseInitializer.cs`: public interface IDatabaseInitializer
 - `src/DividendTracker.Core/Infrastructure/Persistence/ISqliteConnectionFactory.cs`: public interface ISqliteConnectionFactory
@@ -27,6 +31,8 @@
 - `src/DividendTracker.Web/Services/WebAppInfoService.cs`: public sealed class WebAppInfoService : IAppInfoService
 - `tests/DividendTracker.Tests/Features/Portfolios/PortfolioServiceTests.cs`: public sealed class PortfolioServiceTests : IDisposable
 - `tests/DividendTracker.Tests/Features/Portfolios/PortfoliosPageTests.cs`: public sealed class PortfoliosPageTests : BunitContext
+- `tests/DividendTracker.Tests/Features/Securities/SecuritiesPageTests.cs`: public sealed class SecuritiesPageTests : BunitContext
+- `tests/DividendTracker.Tests/Features/Securities/SecurityServiceTests.cs`: public sealed class SecurityServiceTests : IDisposable
 - `tests/DividendTracker.Tests/Features/Shell/HomeComponentTests.cs`: public sealed class HomeComponentTests : BunitContext
 - `tests/DividendTracker.Tests/Features/Shell/MainLayoutComponentTests.cs`: public sealed class MainLayoutComponentTests : BunitContext
 - `tests/DividendTracker.Tests/Features/Shell/WebAppInfoServiceTests.cs`: public sealed class WebAppInfoServiceTests
@@ -39,6 +45,7 @@
 - `src/DividendTracker.Shared.UI/Layout/NavMenu.razor`
 - `src/DividendTracker.Shared.UI/Pages/Home.razor`: @page "/" | @inject IAppInfoService AppInfoService
 - `src/DividendTracker.Shared.UI/Pages/Portfolios.razor`: @page "/portfolios" | @inject IPortfolioService PortfolioService
+- `src/DividendTracker.Shared.UI/Pages/Securities.razor`: @page "/securities" | @inject ISecurityService SecurityService
 - `src/DividendTracker.Shared.UI/Routes.razor`
 - `src/DividendTracker.Web/Components/App.razor`
 

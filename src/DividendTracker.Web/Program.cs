@@ -1,5 +1,6 @@
 using DividendTracker.Core.Common;
 using DividendTracker.Core.Features.Portfolios;
+using DividendTracker.Core.Features.Securities;
 using DividendTracker.Core.Infrastructure.Persistence;
 using DividendTracker.Web.Components;
 using DividendTracker.Web.Services;
@@ -20,6 +21,7 @@ public class Program
         var dbPath = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "dividend-tracker.db");
         builder.Services.AddSqlitePersistence(dbPath);
         builder.Services.AddPortfolioFeature();
+        builder.Services.AddSecurityFeature();
 
         var app = builder.Build();
 

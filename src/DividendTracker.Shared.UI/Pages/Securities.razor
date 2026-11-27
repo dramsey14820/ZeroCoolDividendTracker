@@ -1,0 +1,378 @@
+@page "/securities"
+@using System.Globalization
+@inject ISecurityService SecurityService
+
+<section class="securities-page">
+    <header class="page-header">
+        <h1>Securities &amp; Taxonomies</h1>
+        <p class="page-subtitle">Manage tracked tickers and maintain your investment, industry, and sector classifications.</p>
+    </header>
+
+    @if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="error-banner" role="alert">@_errorMessage</div>
+    }
+
+    <section class="form-card" aria-label="Security form">
+        <h2>@(_editingSecurityId.HasValue ? "Edit Security" : "Add Security")</h2>
+        <form class="security-form" @onsubmit="SaveSecurityAsync">
+            <div class="form-grid">
+                <div class="field-group">
+                    <label for="security-symbol">Symbol</label>
+                    <input id="security-symbol"
+                           type="text"
+                           maxlength="20"
+                           placeholder="e.g., SCHD"
+                           @bind="_symbol" />
+                </div>
+
+                <div class="field-group">
+                    <label for="security-name">Name</label>
+                    <input id="security-name"
+                           type="text"
+                           maxlength="150"
+                           placeholder="e.g., Schwab US Dividend Equity ETF"
+                           @bind="_name" />
+                </div>
+
+                <div class="field-group">
+                    <label for="security-investment-type">Investment Type</label>
+                    <select id="security-investment-type" @bind="_investmentTypeId">
+                        @foreach (var item in _lookups.InvestmentTypes)
+                        {
+                            <option value="@item.Id">@item.Name</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="field-group">
+                    <label for="security-industry-type">Industry</label>
+                    <select id="security-industry-type" @bind="_industryTypeId">
+                        @foreach (var item in _lookups.IndustryTypes)
+                        {
+                            <option value="@item.Id">@item.Name</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="field-group">
+                    <label for="security-sector-type">Sector</label>
+                    <select id="security-sector-type" @bind="_sectorTypeId">
+                        @foreach (var item in _lookups.SectorTypes)
+                        {
+                            <option value="@item.Id">@item.Name</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="field-group">
+                    <label for="security-last-price">Last Price</label>
+                    <input id="security-last-price"
+                           type="number"
+                           step="0.0001"
+                           min="0"
+                           @bind="_lastPrice" />
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">
+                    @(_editingSecurityId.HasValue ? "Update Security" : "Add Security")
+                </button>
+                @if (_editingSecurityId.HasValue)
+                {
+                    <button type="button" class="btn-secondary" @onclick="CancelEditSecurity">Cancel</button>
+                }
+            </div>
+        </form>
+    </section>
+
+    <section class="securities-section" aria-label="Securities list">
+        <h2>Tracked Securities (@_securities.Count)</h2>
+
+        @if (_securities.Count == 0)
+        {
+            <div class="empty-state">
+                <p>No securities tracked yet. Add your first ticker above.</p>
+            </div>
+        }
+        else
+        {
+            <div class="security-grid">
+                @foreach (var security in _securities)
+                {
+                    <article class="security-card">
+                        <div class="card-header">
+                            <div class="card-title-group">
+                                <span class="symbol-badge">@security.Symbol</span>
+                                <h3>@security.Name</h3>
+                            </div>
+                            <div class="card-actions">
+                                <button type="button" class="btn-secondary" @onclick="() => StartEditSecurity(security)">Edit</button>
+                                <button type="button" class="btn-danger" @onclick="() => DeleteSecurityAsync(security.Id)">Delete</button>
+                            </div>
+                        </div>
+
+                        <div class="taxonomy-badges">
+                            <span class="badge">@security.InvestmentTypeName</span>
+                            <span class="badge">@security.SectorTypeName</span>
+                            <span class="badge">@security.IndustryTypeName</span>
+                        </div>
+
+                        <p class="price-line">
+                            Last Price:
+                            <strong>$@security.LastPrice.ToString("N2", CultureInfo.InvariantCulture)</strong>
+                        </p>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+
+    <section class="form-card lookups-section" aria-label="Lookup taxonomies">
+        <h2>Lookup Taxonomies</h2>
+        <form class="lookup-form" @onsubmit="AddLookupAsync">
+            <select aria-label="Lookup category" @bind="_newLookupCategory">
+                <option value="@LookupCategory.InvestmentType">Investment Type</option>
+                <option value="@LookupCategory.IndustryType">Industry</option>
+                <option value="@LookupCategory.SectorType">Sector</option>
+            </select>
+            <input type="text"
+                   maxlength="100"
+                   placeholder="Classification name"
+                   aria-label="Classification name"
+                   @bind="_newLookupName" />
+            <button type="submit" class="btn-primary">Add Classification</button>
+        </form>
+
+        <div class="lookup-grid">
+            <div class="lookup-column">
+                <h3>Investment Types (@_lookups.InvestmentTypes.Count)</h3>
+                <ul class="lookup-list">
+                    @foreach (var item in _lookups.InvestmentTypes)
+                    {
+                        <li class="lookup-item">
+                            <span>@item.Name</span>
+                            <button type="button"
+                                    class="btn-danger btn-compact"
+                                    @onclick="() => DeleteLookupAsync(LookupCategory.InvestmentType, item.Id)">
+                                Remove
+                            </button>
+                        </li>
+                    }
+                </ul>
+            </div>
+
+            <div class="lookup-column">
+                <h3>Industries (@_lookups.IndustryTypes.Count)</h3>
+                <ul class="lookup-list">
+                    @foreach (var item in _lookups.IndustryTypes)
+                    {
+                        <li class="lookup-item">
+                            <span>@item.Name</span>
+                            <button type="button"
+                                    class="btn-danger btn-compact"
+                                    @onclick="() => DeleteLookupAsync(LookupCategory.IndustryType, item.Id)">
+                                Remove
+                            </button>
+                        </li>
+                    }
+                </ul>
+            </div>
+
+            <div class="lookup-column">
+                <h3>Sectors (@_lookups.SectorTypes.Count)</h3>
+                <ul class="lookup-list">
+                    @foreach (var item in _lookups.SectorTypes)
+                    {
+                        <li class="lookup-item">
+                            <span>@item.Name</span>
+                            <button type="button"
+                                    class="btn-danger btn-compact"
+                                    @onclick="() => DeleteLookupAsync(LookupCategory.SectorType, item.Id)">
+                                Remove
+                            </button>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </section>
+</section>
+
+@code {
+    private LookupCatalogDto _lookups = new([], [], []);
+    private List<SecurityDto> _securities = [];
+
+    private long? _editingSecurityId;
+    private string _symbol = string.Empty;
+    private string _name = string.Empty;
+    private long _investmentTypeId;
+    private long _industryTypeId;
+    private long _sectorTypeId;
+    private decimal _lastPrice;
+
+    private LookupCategory _newLookupCategory = LookupCategory.IndustryType;
+    private string _newLookupName = string.Empty;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshDataAsync();
+    }
+
+    private async Task RefreshDataAsync()
+    {
+        _lookups = await SecurityService.GetLookupsAsync();
+        _securities = (await SecurityService.GetSecuritiesAsync()).ToList();
+        EnsureDefaultTaxonomySelections();
+    }
+
+    private void EnsureDefaultTaxonomySelections()
+    {
+        if (_investmentTypeId == 0 && _lookups.InvestmentTypes.Count > 0)
+        {
+            _investmentTypeId = _lookups.InvestmentTypes[0].Id;
+        }
+
+        if (_industryTypeId == 0 && _lookups.IndustryTypes.Count > 0)
+        {
+            _industryTypeId = _lookups.IndustryTypes[0].Id;
+        }
+
+        if (_sectorTypeId == 0 && _lookups.SectorTypes.Count > 0)
+        {
+            _sectorTypeId = _lookups.SectorTypes[0].Id;
+        }
+    }
+
+    private async Task SaveSecurityAsync()
+    {
+        _errorMessage = null;
+
+        try
+        {
+            if (_editingSecurityId.HasValue)
+            {
+                await SecurityService.UpdateSecurityAsync(new UpdateSecurityRequest(
+                    _editingSecurityId.Value,
+                    _symbol,
+                    _name,
+                    _investmentTypeId,
+                    _industryTypeId,
+                    _sectorTypeId,
+                    _lastPrice));
+            }
+            else
+            {
+                await SecurityService.CreateSecurityAsync(new CreateSecurityRequest(
+                    _symbol,
+                    _name,
+                    _investmentTypeId,
+                    _industryTypeId,
+                    _sectorTypeId,
+                    _lastPrice));
+            }
+
+            ResetSecurityForm();
+            await RefreshDataAsync();
+        }
+        catch (ArgumentException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        catch (InvalidOperationException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        catch (KeyNotFoundException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private void StartEditSecurity(SecurityDto security)
+    {
+        _errorMessage = null;
+        _editingSecurityId = security.Id;
+        _symbol = security.Symbol;
+        _name = security.Name;
+        _investmentTypeId = security.InvestmentTypeId;
+        _industryTypeId = security.IndustryTypeId;
+        _sectorTypeId = security.SectorTypeId;
+        _lastPrice = security.LastPrice;
+    }
+
+    private void CancelEditSecurity()
+    {
+        _errorMessage = null;
+        ResetSecurityForm();
+    }
+
+    private async Task DeleteSecurityAsync(long securityId)
+    {
+        _errorMessage = null;
+
+        try
+        {
+            await SecurityService.DeleteSecurityAsync(securityId);
+            if (_editingSecurityId == securityId)
+            {
+                ResetSecurityForm();
+            }
+
+            await RefreshDataAsync();
+        }
+        catch (InvalidOperationException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private async Task AddLookupAsync()
+    {
+        _errorMessage = null;
+
+        try
+        {
+            await SecurityService.CreateLookupAsync(new CreateLookupRequest(_newLookupCategory, _newLookupName));
+            _newLookupName = string.Empty;
+            await RefreshDataAsync();
+        }
+        catch (ArgumentException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        catch (InvalidOperationException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private async Task DeleteLookupAsync(LookupCategory category, long id)
+    {
+        _errorMessage = null;
+
+        try
+        {
+            await SecurityService.DeleteLookupAsync(category, id);
+            await RefreshDataAsync();
+        }
+        catch (InvalidOperationException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private void ResetSecurityForm()
+    {
+        _editingSecurityId = null;
+        _symbol = string.Empty;
+        _name = string.Empty;
+        _lastPrice = 0m;
+        _investmentTypeId = _lookups.InvestmentTypes.Count > 0 ? _lookups.InvestmentTypes[0].Id : 0;
+        _industryTypeId = _lookups.IndustryTypes.Count > 0 ? _lookups.IndustryTypes[0].Id : 0;
+        _sectorTypeId = _lookups.SectorTypes.Count > 0 ? _lookups.SectorTypes[0].Id : 0;
+    }
+}
+
