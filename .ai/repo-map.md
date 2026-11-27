@@ -5,6 +5,10 @@
 ## C# Types & Interfaces
 - `src/DividendTracker.Core/Common/AppInfoDto.cs`: public sealed record AppInfoDto(
 - `src/DividendTracker.Core/Common/IAppInfoService.cs`: public interface IAppInfoService
+- `src/DividendTracker.Core/Features/Holdings/HoldingDtos.cs`: public sealed record MarketBuyDto(; public sealed record HoldingDto(; public sealed record CreateHoldingRequest(; public sealed record UpdateHoldingRequest(; public sealed record CreateMarketBuyRequest(; public sealed record UpdateMarketBuyRequest(
+- `src/DividendTracker.Core/Features/Holdings/HoldingService.cs`: public sealed class HoldingService : IHoldingService
+- `src/DividendTracker.Core/Features/Holdings/HoldingServiceCollectionExtensions.cs`: public static class HoldingServiceCollectionExtensions
+- `src/DividendTracker.Core/Features/Holdings/IHoldingService.cs`: public interface IHoldingService
 - `src/DividendTracker.Core/Features/Portfolios/IPortfolioService.cs`: public interface IPortfolioService
 - `src/DividendTracker.Core/Features/Portfolios/PortfolioDtos.cs`: public sealed record AccountDto(; public sealed record PortfolioDto(; public sealed record CreatePortfolioRequest(; public sealed record UpdatePortfolioRequest(; public sealed record CreateAccountRequest(; public sealed record UpdateAccountRequest(
 - `src/DividendTracker.Core/Features/Portfolios/PortfolioService.cs`: public sealed class PortfolioService : IPortfolioService
@@ -29,6 +33,8 @@
 - `src/DividendTracker.Maui/Services/MauiAppInfoService.cs`: public sealed class MauiAppInfoService : IAppInfoService
 - `src/DividendTracker.Web/Program.cs`: public class Program
 - `src/DividendTracker.Web/Services/WebAppInfoService.cs`: public sealed class WebAppInfoService : IAppInfoService
+- `tests/DividendTracker.Tests/Features/Holdings/HoldingServiceTests.cs`: public sealed class HoldingServiceTests : IDisposable
+- `tests/DividendTracker.Tests/Features/Holdings/HoldingsPageTests.cs`: public sealed class HoldingsPageTests : BunitContext
 - `tests/DividendTracker.Tests/Features/Portfolios/PortfolioServiceTests.cs`: public sealed class PortfolioServiceTests : IDisposable
 - `tests/DividendTracker.Tests/Features/Portfolios/PortfoliosPageTests.cs`: public sealed class PortfoliosPageTests : BunitContext
 - `tests/DividendTracker.Tests/Features/Securities/SecuritiesPageTests.cs`: public sealed class SecuritiesPageTests : BunitContext
@@ -43,6 +49,7 @@
 - `src/DividendTracker.Shared.UI/_Imports.razor`
 - `src/DividendTracker.Shared.UI/Layout/MainLayout.razor`
 - `src/DividendTracker.Shared.UI/Layout/NavMenu.razor`
+- `src/DividendTracker.Shared.UI/Pages/Holdings.razor`: @page "/holdings" | @inject IHoldingService HoldingService | @inject IPortfolioService PortfolioService | @inject ISecurityService SecurityService
 - `src/DividendTracker.Shared.UI/Pages/Home.razor`: @page "/" | @inject IAppInfoService AppInfoService
 - `src/DividendTracker.Shared.UI/Pages/Portfolios.razor`: @page "/portfolios" | @inject IPortfolioService PortfolioService
 - `src/DividendTracker.Shared.UI/Pages/Securities.razor`: @page "/securities" | @inject ISecurityService SecurityService
