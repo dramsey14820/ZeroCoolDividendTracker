@@ -1,0 +1,364 @@
+@page "/holdings"
+@using System.Globalization
+@inject IHoldingService HoldingService
+@inject IPortfolioService PortfolioService
+@inject ISecurityService SecurityService
+
+<section class="holdings-page">
+    <header class="page-header">
+        <div class="header-row">
+            <div>
+                <h1>Holdings &amp; Market Buys</h1>
+                <p class="page-subtitle">Track positions across portfolios and accounts, manage DRIP settings, and record fractional market buys.</p>
+            </div>
+            <div class="filter-group">
+                <label for="portfolio-filter">Filter Portfolio</label>
+                <select id="portfolio-filter" value="@_filterPortfolioId" @onchange="OnFilterChangedAsync">
+                    <option value="">All Portfolios</option>
+                    @foreach (var portfolio in _portfolios)
+                    {
+                        <option value="@portfolio.Id">@portfolio.Name</option>
+                    }
+                </select>
+            </div>
+        </div>
+    </header>
+
+    @if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="error-banner" role="alert">@_errorMessage</div>
+    }
+
+    <section class="form-card" aria-label="Add holding form">
+        <h2>Add Holding</h2>
+        <form class="holding-form" @onsubmit="CreateHoldingAsync">
+            <div class="form-grid">
+                <div class="field-group">
+                    <label for="holding-portfolio">Portfolio</label>
+                    <select id="holding-portfolio" value="@_selectedPortfolioId" @onchange="OnSelectedPortfolioChanged">
+                        @if (_portfolios.Count == 0)
+                        {
+                            <option value="0">No portfolios available</option>
+                        }
+                        @foreach (var portfolio in _portfolios)
+                        {
+                            <option value="@portfolio.Id">@portfolio.Name</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="field-group">
+                    <label for="holding-account">Account</label>
+                    <select id="holding-account" @bind="_selectedAccountId">
+                        @if (AvailableAccounts.Count == 0)
+                        {
+                            <option value="0">No accounts in portfolio</option>
+                        }
+                        @foreach (var account in AvailableAccounts)
+                        {
+                            <option value="@account.Id">@account.Name (@account.AccountType)</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="field-group">
+                    <label for="holding-security">Security</label>
+                    <select id="holding-security" @bind="_selectedSecurityId">
+                        @if (_securities.Count == 0)
+                        {
+                            <option value="0">No securities available</option>
+                        }
+                        @foreach (var security in _securities)
+                        {
+                            <option value="@security.Id">@security.Symbol — @security.Name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <label class="checkbox-field" for="holding-drip">
+                <input id="holding-drip" type="checkbox" @bind="_isDripEnabled" />
+                <span>Enable DRIP (Dividend Reinvestment)</span>
+            </label>
+
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">Add Holding</button>
+            </div>
+        </form>
+    </section>
+
+    @if (_holdings.Count == 0)
+    {
+        <div class="empty-state">
+            <p>No holdings found. Create a holding above and record your first market buy lot.</p>
+        </div>
+    }
+    else
+    {
+        <div class="holdings-grid">
+            @foreach (var holding in _holdings)
+            {
+                var buyDraft = GetMarketBuyDraft(holding.Id);
+                <article class="holding-card">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <span class="symbol-pill">@holding.SecuritySymbol</span>
+                            <div>
+                                <h2>@holding.SecurityName</h2>
+                                <p class="holding-location">@holding.PortfolioName / @holding.AccountName</p>
+                            </div>
+                        </div>
+                        <div class="card-actions">
+                            <button type="button"
+                                    class="btn-secondary"
+                                    @onclick="() => ToggleDripAsync(holding)">
+                                @(holding.IsDripEnabled ? "DRIP: On" : "DRIP: Off")
+                            </button>
+                            <button type="button"
+                                    class="btn-danger"
+                                    @onclick="() => DeleteHoldingAsync(holding.Id)">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="metrics-strip">
+                        <div class="metric-item">
+                            <span class="metric-label">Total Shares</span>
+                            <span class="metric-value">@holding.TotalShares.ToString("0.####", CultureInfo.InvariantCulture)</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">Avg Cost</span>
+                            <span class="metric-value">$@holding.AverageCostPerShare.ToString("F2", CultureInfo.InvariantCulture)</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">Cost Basis</span>
+                            <span class="metric-value">$@holding.TotalCostBasis.ToString("F2", CultureInfo.InvariantCulture)</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">Market Value</span>
+                            <span class="metric-value market-value">$@holding.MarketValue.ToString("F2", CultureInfo.InvariantCulture)</span>
+                        </div>
+                    </div>
+
+                    <div class="buys-section">
+                        <h3>Market Buys (@holding.MarketBuys.Count)</h3>
+
+                        @if (holding.MarketBuys.Count == 0)
+                        {
+                            <p class="buys-empty">No market buys recorded yet.</p>
+                        }
+                        else
+                        {
+                            <ul class="buys-list">
+                                @foreach (var buy in holding.MarketBuys)
+                                {
+                                    <li class="buy-item">
+                                        <div class="buy-meta">
+                                            <span class="buy-date">@buy.PurchaseDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</span>
+                                            <span>@buy.NumberOfShares.ToString("0.####", CultureInfo.InvariantCulture) sh @@ $@buy.PricePerShare.ToString("F2", CultureInfo.InvariantCulture)</span>
+                                            <span class="buy-total">$@buy.TotalCost.ToString("F2", CultureInfo.InvariantCulture)</span>
+                                            @if (buy.IsDrip)
+                                            {
+                                                <span class="badge-drip">DRIP</span>
+                                            }
+                                        </div>
+                                        <button type="button"
+                                                class="btn-danger btn-compact"
+                                                @onclick="() => DeleteMarketBuyAsync(buy.Id)">
+                                            Remove
+                                        </button>
+                                    </li>
+                                }
+                            </ul>
+                        }
+
+                        <form class="market-buy-form" @onsubmit="() => AddMarketBuyAsync(holding.Id)">
+                            <input type="date"
+                                   name="purchaseDate"
+                                   aria-label="Purchase date"
+                                   @bind="buyDraft.PurchaseDate" />
+                            <input type="number"
+                                   name="numberOfShares"
+                                   step="any"
+                                   min="0"
+                                   placeholder="Shares"
+                                   aria-label="Number of shares"
+                                   @bind="buyDraft.NumberOfShares" />
+                            <input type="number"
+                                   name="pricePerShare"
+                                   step="any"
+                                   min="0"
+                                   placeholder="Price / share"
+                                   aria-label="Price per share"
+                                   @bind="buyDraft.PricePerShare" />
+                            <label class="checkbox-field compact-checkbox">
+                                <input type="checkbox" name="isDrip" @bind="buyDraft.IsDrip" />
+                                <span>DRIP</span>
+                            </label>
+                            <button type="submit" class="btn-primary">Add Buy</button>
+                        </form>
+                    </div>
+                </article>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    private List<PortfolioDto> _portfolios = [];
+    private List<SecurityDto> _securities = [];
+    private List<HoldingDto> _holdings = [];
+    private readonly Dictionary<long, MarketBuyDraft> _buyDrafts = [];
+
+    private long? _filterPortfolioId;
+    private long _selectedPortfolioId;
+    private long _selectedAccountId;
+    private long _selectedSecurityId;
+    private bool _isDripEnabled;
+    private string? _errorMessage;
+
+    private IReadOnlyList<AccountDto> AvailableAccounts =>
+        _portfolios.FirstOrDefault(p => p.Id == _selectedPortfolioId)?.Accounts ?? Array.Empty<AccountDto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _portfolios = (await PortfolioService.GetPortfoliosAsync()).ToList();
+        _securities = (await SecurityService.GetSecuritiesAsync()).ToList();
+
+        if (_portfolios.Count > 0)
+        {
+            _selectedPortfolioId = _portfolios[0].Id;
+            _selectedAccountId = _portfolios[0].Accounts.FirstOrDefault()?.Id ?? 0;
+        }
+
+        if (_securities.Count > 0)
+        {
+            _selectedSecurityId = _securities[0].Id;
+        }
+
+        await RefreshHoldingsAsync();
+    }
+
+    private async Task RefreshHoldingsAsync()
+    {
+        var items = await HoldingService.GetHoldingsAsync(_filterPortfolioId);
+        _holdings = items.ToList();
+    }
+
+    private async Task OnFilterChangedAsync(ChangeEventArgs e)
+    {
+        _errorMessage = null;
+        var raw = e.Value?.ToString();
+        _filterPortfolioId = long.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)
+            ? parsed
+            : null;
+        await RefreshHoldingsAsync();
+    }
+
+    private void OnSelectedPortfolioChanged(ChangeEventArgs e)
+    {
+        var raw = e.Value?.ToString();
+        if (long.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+        {
+            _selectedPortfolioId = parsed;
+            _selectedAccountId = AvailableAccounts.FirstOrDefault()?.Id ?? 0;
+        }
+    }
+
+    private async Task CreateHoldingAsync()
+    {
+        _errorMessage = null;
+
+        try
+        {
+            await HoldingService.CreateHoldingAsync(new CreateHoldingRequest(
+                _selectedPortfolioId,
+                _selectedAccountId,
+                _selectedSecurityId,
+                _isDripEnabled));
+
+            _isDripEnabled = false;
+            await RefreshHoldingsAsync();
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or KeyNotFoundException)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private async Task ToggleDripAsync(HoldingDto holding)
+    {
+        _errorMessage = null;
+
+        try
+        {
+            await HoldingService.UpdateHoldingAsync(new UpdateHoldingRequest(holding.Id, !holding.IsDripEnabled));
+            await RefreshHoldingsAsync();
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or KeyNotFoundException)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private async Task DeleteHoldingAsync(long holdingId)
+    {
+        _errorMessage = null;
+        await HoldingService.DeleteHoldingAsync(holdingId);
+        _buyDrafts.Remove(holdingId);
+        await RefreshHoldingsAsync();
+    }
+
+    private async Task AddMarketBuyAsync(long holdingId)
+    {
+        _errorMessage = null;
+        var draft = GetMarketBuyDraft(holdingId);
+
+        try
+        {
+            await HoldingService.CreateMarketBuyAsync(new CreateMarketBuyRequest(
+                holdingId,
+                draft.NumberOfShares,
+                draft.PricePerShare,
+                draft.PurchaseDate,
+                draft.IsDrip));
+
+            draft.NumberOfShares = 0m;
+            draft.PricePerShare = 0m;
+            draft.IsDrip = false;
+            await RefreshHoldingsAsync();
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or KeyNotFoundException)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private async Task DeleteMarketBuyAsync(long marketBuyId)
+    {
+        _errorMessage = null;
+        await HoldingService.DeleteMarketBuyAsync(marketBuyId);
+        await RefreshHoldingsAsync();
+    }
+
+    private MarketBuyDraft GetMarketBuyDraft(long holdingId)
+    {
+        if (!_buyDrafts.TryGetValue(holdingId, out var draft))
+        {
+            draft = new MarketBuyDraft();
+            _buyDrafts[holdingId] = draft;
+        }
+
+        return draft;
+    }
+
+    private sealed class MarketBuyDraft
+    {
+        public DateOnly PurchaseDate { get; set; } = DateOnly.FromDateTime(DateTime.UtcNow);
+        public decimal NumberOfShares { get; set; }
+        public decimal PricePerShare { get; set; }
+        public bool IsDrip { get; set; }
+    }
+}
+

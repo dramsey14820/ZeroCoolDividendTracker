@@ -1,4 +1,5 @@
 using DividendTracker.Core.Common;
+using DividendTracker.Core.Features.Holdings;
 using DividendTracker.Core.Features.Portfolios;
 using DividendTracker.Core.Features.Securities;
 using DividendTracker.Core.Infrastructure.Persistence;
@@ -28,6 +29,7 @@ public static class MauiProgram
         builder.Services.AddSqlitePersistence(dbPath);
         builder.Services.AddPortfolioFeature();
         builder.Services.AddSecurityFeature();
+        builder.Services.AddHoldingFeature();
 
         return builder.Build();
     }

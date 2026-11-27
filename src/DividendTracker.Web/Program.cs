@@ -1,4 +1,5 @@
 using DividendTracker.Core.Common;
+using DividendTracker.Core.Features.Holdings;
 using DividendTracker.Core.Features.Portfolios;
 using DividendTracker.Core.Features.Securities;
 using DividendTracker.Core.Infrastructure.Persistence;
@@ -22,6 +23,7 @@ public class Program
         builder.Services.AddSqlitePersistence(dbPath);
         builder.Services.AddPortfolioFeature();
         builder.Services.AddSecurityFeature();
+        builder.Services.AddHoldingFeature();
 
         var app = builder.Build();
 
