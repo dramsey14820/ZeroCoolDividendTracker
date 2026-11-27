@@ -1,6 +1,6 @@
 # Slice 01: Walking Skeleton & Multi-Host Shell
 
-- **Status**: `In Progress`
+- **Status**: `In Review`
 - **Risk**: `High`
 - **Owner / Stage**: Stage 2 (Gemini Mini-Spec) -> Stages 3–5 (Local Ollama) -> Stage 6 (Two-Tier Review)
 
@@ -138,9 +138,9 @@ Feature: Walking Skeleton & Multi-Host Shell
 
 ## 4. Implementation Subtasks
 
-- [ ] **Red**: Generate xUnit + FluentAssertions + NSubstitute + bUnit tests covering all Gherkin scenarios (`qwen2.5-coder:7b`)
-- [ ] **Green**: Scaffold `.NET 10` solution, projects, contracts, shared CSS Grid/Flexbox UI, Web/MAUI hosts, and DI registrations (`qwen2.5-coder:7b`)
-- [ ] **Verify**: Pass `dotnet build -warnaserror` and `dotnet test` (local fixes via `qwen3.5:9b`, max 2 retries)
+- [x] **Red**: Generate xUnit + FluentAssertions + NSubstitute + bUnit tests covering all Gherkin scenarios (`qwen2.5-coder:7b`)
+- [x] **Green**: Scaffold `.NET 10` solution, projects, contracts, shared CSS Grid/Flexbox UI, Web/MAUI hosts, and DI registrations (`qwen2.5-coder:7b`)
+- [x] **Verify**: Pass `dotnet build -warnaserror` and `dotnet test` (local fixes via `qwen3.5:9b`, max 2 retries)
 - [ ] **Pass-1 Review**: Run local `qwen3.5:9b` review on `git diff --staged`
 - [ ] **Pass-2 Audit**: Submit `git diff --staged` for Gemini architectural & security sign-off
 
