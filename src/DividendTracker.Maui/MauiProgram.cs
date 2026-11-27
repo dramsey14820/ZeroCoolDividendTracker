@@ -1,4 +1,5 @@
 using DividendTracker.Core.Common;
+using DividendTracker.Core.Infrastructure.Persistence;
 using DividendTracker.Maui.Services;
 
 namespace DividendTracker.Maui;
@@ -13,7 +14,17 @@ public static class MauiProgram
         builder.Services.AddMauiBlazorWebView();
         builder.Services.AddSingleton<IAppInfoService, MauiAppInfoService>();
 
+#if WINDOWS
+        var dbPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "ZeroCoolDividendTracker",
+            "dividend-tracker.db");
+#else
+        var dbPath = Path.Combine(FileSystem.AppDataDirectory, "dividend-tracker.db");
+#endif
+
+        builder.Services.AddSqlitePersistence(dbPath);
+
         return builder.Build();
     }
 }
-

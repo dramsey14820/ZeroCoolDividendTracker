@@ -1,4 +1,5 @@
 using DividendTracker.Core.Common;
+using DividendTracker.Core.Infrastructure.Persistence;
 using DividendTracker.Web.Components;
 using DividendTracker.Web.Services;
 
@@ -6,7 +7,7 @@ namespace DividendTracker.Web;
 
 public class Program
 {
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +15,9 @@ public class Program
             .AddInteractiveServerComponents();
 
         builder.Services.AddSingleton<IAppInfoService, WebAppInfoService>();
+
+        var dbPath = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "dividend-tracker.db");
+        builder.Services.AddSqlitePersistence(dbPath);
 
         var app = builder.Build();
 
@@ -31,7 +35,8 @@ public class Program
             .AddInteractiveServerRenderMode()
             .AddAdditionalAssemblies(typeof(DividendTracker.Shared.UI.Routes).Assembly);
 
-        app.Run();
+        await app.Services.GetRequiredService<IDatabaseInitializer>().InitializeAsync();
+
+        await app.RunAsync();
     }
 }
-
