@@ -5,6 +5,10 @@
 ## C# Types & Interfaces
 - `src/DividendTracker.Core/Common/AppInfoDto.cs`: public sealed record AppInfoDto(
 - `src/DividendTracker.Core/Common/IAppInfoService.cs`: public interface IAppInfoService
+- `src/DividendTracker.Core/Features/Portfolios/IPortfolioService.cs`: public interface IPortfolioService
+- `src/DividendTracker.Core/Features/Portfolios/PortfolioDtos.cs`: public sealed record AccountDto(; public sealed record PortfolioDto(; public sealed record CreatePortfolioRequest(; public sealed record UpdatePortfolioRequest(; public sealed record CreateAccountRequest(; public sealed record UpdateAccountRequest(
+- `src/DividendTracker.Core/Features/Portfolios/PortfolioService.cs`: public sealed class PortfolioService : IPortfolioService
+- `src/DividendTracker.Core/Features/Portfolios/PortfolioServiceCollectionExtensions.cs`: public static class PortfolioServiceCollectionExtensions
 - `src/DividendTracker.Core/Infrastructure/Persistence/DecimalTextTypeHandler.cs`: public sealed class DecimalTextTypeHandler : SqlMapper.TypeHandler<decimal>
 - `src/DividendTracker.Core/Infrastructure/Persistence/IDatabaseInitializer.cs`: public interface IDatabaseInitializer
 - `src/DividendTracker.Core/Infrastructure/Persistence/ISqliteConnectionFactory.cs`: public interface ISqliteConnectionFactory
@@ -21,6 +25,8 @@
 - `src/DividendTracker.Maui/Services/MauiAppInfoService.cs`: public sealed class MauiAppInfoService : IAppInfoService
 - `src/DividendTracker.Web/Program.cs`: public class Program
 - `src/DividendTracker.Web/Services/WebAppInfoService.cs`: public sealed class WebAppInfoService : IAppInfoService
+- `tests/DividendTracker.Tests/Features/Portfolios/PortfolioServiceTests.cs`: public sealed class PortfolioServiceTests : IDisposable
+- `tests/DividendTracker.Tests/Features/Portfolios/PortfoliosPageTests.cs`: public sealed class PortfoliosPageTests : BunitContext
 - `tests/DividendTracker.Tests/Features/Shell/HomeComponentTests.cs`: public sealed class HomeComponentTests : BunitContext
 - `tests/DividendTracker.Tests/Features/Shell/MainLayoutComponentTests.cs`: public sealed class MainLayoutComponentTests : BunitContext
 - `tests/DividendTracker.Tests/Features/Shell/WebAppInfoServiceTests.cs`: public sealed class WebAppInfoServiceTests
@@ -32,6 +38,7 @@
 - `src/DividendTracker.Shared.UI/Layout/MainLayout.razor`
 - `src/DividendTracker.Shared.UI/Layout/NavMenu.razor`
 - `src/DividendTracker.Shared.UI/Pages/Home.razor`: @page "/" | @inject IAppInfoService AppInfoService
+- `src/DividendTracker.Shared.UI/Pages/Portfolios.razor`: @page "/portfolios" | @inject IPortfolioService PortfolioService
 - `src/DividendTracker.Shared.UI/Routes.razor`
 - `src/DividendTracker.Web/Components/App.razor`
 

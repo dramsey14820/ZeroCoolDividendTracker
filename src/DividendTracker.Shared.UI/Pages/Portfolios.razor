@@ -1,0 +1,285 @@
+@page "/portfolios"
+@inject IPortfolioService PortfolioService
+
+<section class="portfolios-page">
+    <header class="page-header">
+        <h1>Portfolios &amp; Accounts</h1>
+        <p class="page-subtitle">Organize actual and modelled dividend portfolios and their brokerage accounts.</p>
+    </header>
+
+    @if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="error-banner" role="alert">@_errorMessage</div>
+    }
+
+    <section class="form-card" aria-label="Portfolio form">
+        <h2>@(_editingPortfolioId.HasValue ? "Edit Portfolio" : "Create Portfolio")</h2>
+        <form class="portfolio-form" @onsubmit="SavePortfolioAsync">
+            <div class="field-group">
+                <label for="portfolio-name">Portfolio Name</label>
+                <input id="portfolio-name"
+                       type="text"
+                       maxlength="100"
+                       placeholder="e.g., Core Income"
+                       @bind="_portfolioName" />
+            </div>
+
+            <div class="field-group">
+                <label for="portfolio-description">Description</label>
+                <input id="portfolio-description"
+                       type="text"
+                       placeholder="Optional notes"
+                       @bind="_portfolioDescription" />
+            </div>
+
+            <label class="checkbox-field" for="portfolio-modelled">
+                <input id="portfolio-modelled"
+                       type="checkbox"
+                       @bind="_portfolioIsModelled" />
+                <span>Modelled / Watchlist Portfolio</span>
+            </label>
+
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">
+                    @(_editingPortfolioId.HasValue ? "Update Portfolio" : "Add Portfolio")
+                </button>
+                @if (_editingPortfolioId.HasValue)
+                {
+                    <button type="button" class="btn-secondary" @onclick="CancelEditPortfolio">Cancel</button>
+                }
+            </div>
+        </form>
+    </section>
+
+    @if (_portfolios.Count == 0)
+    {
+        <div class="empty-state">
+            <p>No portfolios yet. Create your first actual or modelled portfolio above.</p>
+        </div>
+    }
+    else
+    {
+        <div class="portfolio-grid">
+            @foreach (var portfolio in _portfolios)
+            {
+                var draft = GetAccountDraft(portfolio.Id);
+                <article class="portfolio-card">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <h2>@portfolio.Name</h2>
+                            <span class="badge @(portfolio.IsModelled ? "badge-modelled" : "badge-actual")">
+                                @(portfolio.IsModelled ? "Modelled" : "Actual")
+                            </span>
+                        </div>
+                        <div class="card-actions">
+                            <button type="button" class="btn-secondary" @onclick="() => StartEditPortfolio(portfolio)">Edit</button>
+                            <button type="button" class="btn-danger" @onclick="() => DeletePortfolioAsync(portfolio.Id)">Delete</button>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(portfolio.Description))
+                    {
+                        <p class="card-description">@portfolio.Description</p>
+                    }
+
+                    <div class="accounts-section">
+                        <h3>Accounts (@portfolio.Accounts.Count)</h3>
+
+                        @if (portfolio.Accounts.Count == 0)
+                        {
+                            <p class="accounts-empty">No accounts added yet.</p>
+                        }
+                        else
+                        {
+                            <ul class="accounts-list">
+                                @foreach (var account in portfolio.Accounts)
+                                {
+                                    <li class="account-item">
+                                        <div class="account-meta">
+                                            <span class="account-name">@account.Name</span>
+                                            <span class="account-type">@account.AccountType</span>
+                                        </div>
+                                        <button type="button"
+                                                class="btn-danger btn-compact"
+                                                @onclick="() => DeleteAccountAsync(account.Id)">
+                                            Remove
+                                        </button>
+                                    </li>
+                                }
+                            </ul>
+                        }
+
+                        <form class="account-form" @onsubmit="() => AddAccountAsync(portfolio.Id)">
+                            <input type="text"
+                                   maxlength="100"
+                                   placeholder="Account name"
+                                   aria-label="Account name"
+                                   @bind="draft.Name" />
+                            <select aria-label="Account type" @bind="draft.AccountType">
+                                @foreach (var accountType in AccountTypeOptions)
+                                {
+                                    <option value="@accountType">@accountType</option>
+                                }
+                            </select>
+                            <button type="submit" class="btn-primary">Add Account</button>
+                        </form>
+                    </div>
+                </article>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    private static readonly string[] AccountTypeOptions =
+    [
+        "Taxable",
+        "IRA",
+        "Roth IRA",
+        "401(k)",
+        "Model"
+    ];
+
+    private List<PortfolioDto> _portfolios = [];
+    private readonly Dictionary<long, AccountDraft> _accountDrafts = [];
+
+    private long? _editingPortfolioId;
+    private string _portfolioName = string.Empty;
+    private string _portfolioDescription = string.Empty;
+    private bool _portfolioIsModelled;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshPortfoliosAsync();
+    }
+
+    private async Task RefreshPortfoliosAsync()
+    {
+        var items = await PortfolioService.GetPortfoliosAsync();
+        _portfolios = items.ToList();
+    }
+
+    private async Task SavePortfolioAsync()
+    {
+        _errorMessage = null;
+
+        try
+        {
+            if (_editingPortfolioId.HasValue)
+            {
+                await PortfolioService.UpdatePortfolioAsync(new UpdatePortfolioRequest(
+                    _editingPortfolioId.Value,
+                    _portfolioName,
+                    _portfolioDescription,
+                    _portfolioIsModelled));
+            }
+            else
+            {
+                await PortfolioService.CreatePortfolioAsync(new CreatePortfolioRequest(
+                    _portfolioName,
+                    _portfolioDescription,
+                    _portfolioIsModelled));
+            }
+
+            ResetPortfolioForm();
+            await RefreshPortfoliosAsync();
+        }
+        catch (ArgumentException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        catch (KeyNotFoundException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private void StartEditPortfolio(PortfolioDto portfolio)
+    {
+        _errorMessage = null;
+        _editingPortfolioId = portfolio.Id;
+        _portfolioName = portfolio.Name;
+        _portfolioDescription = portfolio.Description;
+        _portfolioIsModelled = portfolio.IsModelled;
+    }
+
+    private void CancelEditPortfolio()
+    {
+        _errorMessage = null;
+        ResetPortfolioForm();
+    }
+
+    private async Task DeletePortfolioAsync(long portfolioId)
+    {
+        _errorMessage = null;
+
+        await PortfolioService.DeletePortfolioAsync(portfolioId);
+        if (_editingPortfolioId == portfolioId)
+        {
+            ResetPortfolioForm();
+        }
+
+        _accountDrafts.Remove(portfolioId);
+        await RefreshPortfoliosAsync();
+    }
+
+    private async Task AddAccountAsync(long portfolioId)
+    {
+        _errorMessage = null;
+        var draft = GetAccountDraft(portfolioId);
+
+        try
+        {
+            await PortfolioService.CreateAccountAsync(new CreateAccountRequest(
+                portfolioId,
+                draft.Name,
+                draft.AccountType));
+
+            draft.Name = string.Empty;
+            draft.AccountType = AccountTypeOptions[0];
+            await RefreshPortfoliosAsync();
+        }
+        catch (ArgumentException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        catch (KeyNotFoundException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private async Task DeleteAccountAsync(long accountId)
+    {
+        _errorMessage = null;
+        await PortfolioService.DeleteAccountAsync(accountId);
+        await RefreshPortfoliosAsync();
+    }
+
+    private void ResetPortfolioForm()
+    {
+        _editingPortfolioId = null;
+        _portfolioName = string.Empty;
+        _portfolioDescription = string.Empty;
+        _portfolioIsModelled = false;
+    }
+
+    private AccountDraft GetAccountDraft(long portfolioId)
+    {
+        if (!_accountDrafts.TryGetValue(portfolioId, out var draft))
+        {
+            draft = new AccountDraft();
+            _accountDrafts[portfolioId] = draft;
+        }
+
+        return draft;
+    }
+
+    private sealed class AccountDraft
+    {
+        public string Name { get; set; } = string.Empty;
+        public string AccountType { get; set; } = AccountTypeOptions[0];
+    }
+}
+

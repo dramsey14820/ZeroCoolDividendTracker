@@ -1,10 +1,10 @@
 using Bunit;
 using DividendTracker.Core.Features.Portfolios;
-using DividendTracker.Shared.UI.Pages;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Xunit;
+using PortfoliosPage = DividendTracker.Shared.UI.Pages.Portfolios;
 
 namespace DividendTracker.Tests.Features.Portfolios;
 
@@ -32,7 +32,7 @@ public sealed class PortfoliosPageTests : BunitContext
         Services.AddSingleton(portfolioService);
 
         // Act
-        var cut = Render<Portfolios>();
+        var cut = Render<PortfoliosPage>();
 
         // Assert
         cut.Markup.Should().Contain("Core Income");
@@ -57,7 +57,7 @@ public sealed class PortfoliosPageTests : BunitContext
             .Returns(refreshedPortfolios[0]);
         Services.AddSingleton(portfolioService);
 
-        var cut = Render<Portfolios>();
+        var cut = Render<PortfoliosPage>();
 
         // Act
         cut.Find("#portfolio-name").Change("Dividend Growth");

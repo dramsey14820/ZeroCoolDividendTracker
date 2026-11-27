@@ -1,4 +1,5 @@
 using DividendTracker.Core.Common;
+using DividendTracker.Core.Features.Portfolios;
 using DividendTracker.Core.Infrastructure.Persistence;
 using DividendTracker.Maui.Services;
 
@@ -24,6 +25,7 @@ public static class MauiProgram
 #endif
 
         builder.Services.AddSqlitePersistence(dbPath);
+        builder.Services.AddPortfolioFeature();
 
         return builder.Build();
     }
