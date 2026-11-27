@@ -195,7 +195,8 @@ $payload = @{
 Write-Host "`nSending request to Ollama..." -ForegroundColor Yellow
 
 try {
-    $response = Invoke-RestMethod -Uri "$OllamaUrl/api/chat" -Method Post -ContentType 'application/json' -Body $payload
+    $utf8Body = [System.Text.Encoding]::UTF8.GetBytes($payload)
+    $response = Invoke-RestMethod -Uri "$OllamaUrl/api/chat" -Method Post -ContentType 'application/json; charset=utf-8' -Body $utf8Body
 } catch {
     throw "Failed to reach Ollama at '$OllamaUrl/api/chat'. Ensure Ollama is running ('ollama serve') and '$model' is installed. Details: $($_.Exception.Message)"
 }
