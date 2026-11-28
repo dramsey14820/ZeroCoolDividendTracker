@@ -1,6 +1,6 @@
 # Slice 07: Yield & Income Analytics Dashboard
 
-- **Status**: `Ready`
+- **Status**: `In Progress`
 - **Risk**: `High`
 - **Owner / Stage**: Stage 2 (Gemini Mini-Spec) -> Stages 3–5 (Local Ollama) -> Stage 6 (Two-Tier Review)
 
