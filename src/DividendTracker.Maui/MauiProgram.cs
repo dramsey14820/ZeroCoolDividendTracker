@@ -1,4 +1,5 @@
 using DividendTracker.Core.Common;
+using DividendTracker.Core.Features.Dividends;
 using DividendTracker.Core.Features.Holdings;
 using DividendTracker.Core.Features.Portfolios;
 using DividendTracker.Core.Features.Securities;
@@ -30,6 +31,7 @@ public static class MauiProgram
         builder.Services.AddPortfolioFeature();
         builder.Services.AddSecurityFeature();
         builder.Services.AddHoldingFeature();
+        builder.Services.AddDividendFeature();
 
         return builder.Build();
     }

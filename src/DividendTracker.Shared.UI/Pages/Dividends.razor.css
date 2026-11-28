@@ -1,0 +1,252 @@
+.dividends-page {
+    display: grid;
+    gap: var(--space-lg);
+}
+
+.page-header {
+    display: grid;
+    gap: var(--space-xs);
+}
+
+.header-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: var(--space-md);
+}
+
+.page-subtitle {
+    margin: 0;
+    color: var(--color-text-muted);
+}
+
+.filters-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+}
+
+.filter-group,
+.field-group {
+    display: grid;
+    gap: var(--space-xs);
+}
+
+.filter-group label,
+.field-group label {
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.summary-strip {
+    display: grid;
+    gap: var(--space-sm);
+    grid-template-columns: 1fr;
+    padding: var(--space-md);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+}
+
+.summary-item {
+    display: grid;
+    gap: 2px;
+}
+
+.summary-label {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+.summary-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.error-banner {
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid var(--color-border);
+    border-left: 4px solid #b91c1c;
+    border-radius: var(--radius-md);
+    background-color: #fef2f2;
+    color: #991b1b;
+}
+
+.form-card,
+.dividend-card,
+.empty-state {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+}
+
+.form-card h2,
+.dividend-card h2 {
+    margin: 0 0 var(--space-xs) 0;
+}
+
+.record-dividend-form {
+    display: grid;
+    gap: var(--space-md);
+}
+
+.form-grid,
+.drip-grid {
+    display: grid;
+    gap: var(--space-md);
+    grid-template-columns: 1fr;
+}
+
+.dividends-page select,
+.dividends-page input[type="date"],
+.dividends-page input[type="number"],
+.dividends-page input[type="text"] {
+    min-height: 44px;
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    font: inherit;
+}
+
+.checkbox-field {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    min-height: 44px;
+    cursor: pointer;
+}
+
+.form-actions,
+.card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.btn-primary,
+.btn-danger {
+    min-height: 44px;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background-color: var(--color-primary);
+    color: var(--color-surface);
+}
+
+.btn-danger {
+    background-color: #fef2f2;
+    color: #b91c1c;
+    border-color: #fecaca;
+}
+
+.dividends-grid {
+    display: grid;
+    gap: var(--space-md);
+    grid-template-columns: 1fr;
+}
+
+.dividend-card {
+    display: grid;
+    gap: var(--space-sm);
+    align-content: start;
+}
+
+.card-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--space-sm);
+}
+
+.card-title-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.symbol-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-sm);
+    background-color: var(--color-primary-subtle);
+    color: var(--color-primary);
+    font-weight: 700;
+}
+
+.holding-location,
+.dividend-notes {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+}
+
+.payout-amount {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-sm);
+    padding-top: var(--space-xs);
+    border-top: 1px solid var(--color-border);
+    font-size: 0.9rem;
+}
+
+.badge-drip,
+.badge-cash {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px var(--space-sm);
+    border-radius: var(--radius-sm);
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.badge-drip {
+    background-color: var(--color-primary-subtle);
+    color: var(--color-primary);
+}
+
+.badge-cash {
+    background-color: var(--color-bg);
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-border);
+}
+
+@media (min-width: 768px) {
+    .summary-strip {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .form-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .field-span-2 {
+        grid-column: span 2;
+    }
+
+    .drip-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
