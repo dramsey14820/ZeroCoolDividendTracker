@@ -1,4 +1,5 @@
 using DividendTracker.Core.Common;
+using DividendTracker.Core.Features.Analytics;
 using DividendTracker.Core.Features.Dividends;
 using DividendTracker.Core.Features.Holdings;
 using DividendTracker.Core.Features.Portfolios;
@@ -26,6 +27,7 @@ public class Program
         builder.Services.AddSecurityFeature();
         builder.Services.AddHoldingFeature();
         builder.Services.AddDividendFeature();
+        builder.Services.AddAnalyticsFeature();
 
         var app = builder.Build();
 

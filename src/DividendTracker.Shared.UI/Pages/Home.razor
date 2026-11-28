@@ -1,39 +1,275 @@
 @page "/"
+@using System.Globalization
 @inject IAppInfoService AppInfoService
-
-@{
-    var appInfo = AppInfoService.GetAppInfo();
-}
+@inject IAnalyticsService AnalyticsService
+@inject IPortfolioService PortfolioService
 
 <section class="home-container">
     <header class="home-hero">
-        <h1>@appInfo.ApplicationName</h1>
-        <div class="home-meta">
-            <span class="meta-badge">@appInfo.PlatformName</span>
-            <span class="meta-version">v@(appInfo.Version)</span>
+        <div class="hero-top">
+            <div>
+                <h1>@_appInfo.ApplicationName</h1>
+                <div class="home-meta">
+                    <span class="meta-badge">@_appInfo.PlatformName</span>
+                    <span class="meta-version">v@(_appInfo.Version)</span>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label for="portfolioFilter">Portfolio</label>
+                <select id="portfolioFilter"
+                        name="portfolioFilter"
+                        class="filter-select"
+                        value="@_selectedPortfolioIdText"
+                        @onchange="OnPortfolioFilterChangedAsync">
+                    <option value="">All Portfolios</option>
+                    @foreach (var portfolio in _portfolios)
+                    {
+                        <option value="@portfolio.Id.ToString(CultureInfo.InvariantCulture)">
+                            @portfolio.Name@(portfolio.IsModelled ? " [Modelled]" : string.Empty)
+                        </option>
+                    }
+                </select>
+            </div>
         </div>
         <p class="home-subtitle">
             Track dividend portfolios, DRIP reinvestments, yield on cost, and income growth across Web, Windows, and Android.
         </p>
     </header>
 
-    <div class="home-grid">
-        <article class="overview-card">
-            <h2>Portfolios</h2>
-            <p>Organize actual and modelled dividend portfolios and accounts.</p>
-        </article>
-        <article class="overview-card">
-            <h2>Holdings</h2>
-            <p>Track fractional share buys, cost basis, and DRIP positions.</p>
-        </article>
-        <article class="overview-card">
-            <h2>Dividends</h2>
-            <p>Log payouts, import history, and measure compounding income.</p>
-        </article>
-        <article class="overview-card">
-            <h2>Analytics</h2>
-            <p>Inspect current yield, yield on cost, and sector allocation.</p>
-        </article>
-    </div>
+    @if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="error-banner" role="alert">@_errorMessage</div>
+    }
+
+    @if (_dashboard is null)
+    {
+        <p class="loading-text">Loading analytics...</p>
+    }
+    else
+    {
+        var summary = _dashboard.Summary;
+        var gainClass = summary.TotalUnrealizedGainLoss >= 0m ? "metric-positive" : "metric-negative";
+
+        <section class="kpi-grid" aria-label="Portfolio summary metrics">
+            <article class="kpi-card">
+                <span class="kpi-label">Total Market Value</span>
+                <strong class="kpi-value">@FormatCurrency(summary.TotalMarketValue)</strong>
+                <span class="kpi-sub">@summary.HoldingCount.ToString(CultureInfo.InvariantCulture) holdings</span>
+            </article>
+
+            <article class="kpi-card">
+                <span class="kpi-label">Total Cost Basis</span>
+                <strong class="kpi-value">@FormatCurrency(summary.TotalCostBasis)</strong>
+                <span class="kpi-sub @gainClass">
+                    @FormatSignedCurrency(summary.TotalUnrealizedGainLoss) (@FormatPercent(summary.TotalUnrealizedGainLossPercent))
+                </span>
+            </article>
+
+            <article class="kpi-card">
+                <span class="kpi-label">Projected Annual Income (TTM)</span>
+                <strong class="kpi-value">@FormatCurrency(summary.ProjectedAnnualIncome)</strong>
+                <span class="kpi-sub">@FormatCurrency(summary.ProjectedMonthlyIncome) / month</span>
+            </article>
+
+            <article class="kpi-card">
+                <span class="kpi-label">Current Yield / Yield on Cost</span>
+                <strong class="kpi-value">@FormatPercent(summary.PortfolioCurrentYieldPercent)</strong>
+                <span class="kpi-sub">YoC: @FormatPercent(summary.PortfolioYieldOnCostPercent)</span>
+            </article>
+
+            <article class="kpi-card">
+                <span class="kpi-label">Lifetime Dividend Income</span>
+                <strong class="kpi-value">@FormatCurrency(summary.LifetimeDividendIncome)</strong>
+                <span class="kpi-sub">As of @_dashboard.AsOfDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</span>
+            </article>
+        </section>
+
+        @if (_dashboard.Holdings.Count == 0)
+        {
+            <section class="empty-state">
+                <h2>No Holdings Tracked Yet</h2>
+                <p>Add a portfolio, record holdings or market buys, and log dividend payouts to populate your analytics dashboard.</p>
+                <div class="empty-actions">
+                    <a class="action-link" href="portfolios">Manage Portfolios</a>
+                    <a class="action-link" href="holdings">Add Holdings</a>
+                    <a class="action-link" href="dividends">Log Dividends</a>
+                </div>
+            </section>
+        }
+        else
+        {
+            <section class="section-block" aria-label="Allocation breakdowns">
+                <h2 class="section-title">Allocation Breakdowns</h2>
+                <div class="allocation-grid">
+                    @RenderAllocationCard("By Sector", _dashboard.SectorAllocations)
+                    @RenderAllocationCard("By Industry", _dashboard.IndustryAllocations)
+                    @RenderAllocationCard("By Investment Type", _dashboard.InvestmentTypeAllocations)
+                </div>
+            </section>
+
+            <section class="section-block" aria-label="Monthly dividend income history">
+                <h2 class="section-title">Monthly Dividend Income History</h2>
+                @if (_dashboard.MonthlyIncomeHistory.Count == 0)
+                {
+                    <p class="muted-note">No dividend payouts recorded yet.</p>
+                }
+                else
+                {
+                    var maxMonthAmount = _dashboard.MonthlyIncomeHistory.Max(m => m.TotalAmount);
+                    <div class="history-list">
+                        @foreach (var point in _dashboard.MonthlyIncomeHistory)
+                        {
+                            var barWidth = maxMonthAmount > 0m
+                                ? Math.Clamp(Math.Round((point.TotalAmount / maxMonthAmount) * 100m, 2, MidpointRounding.AwayFromZero), 0m, 100m)
+                                : 0m;
+                            <div class="history-row">
+                                <span class="history-label">@point.Label</span>
+                                <div class="bar-track" aria-hidden="true">
+                                    <div class="bar-fill" style="@($"width: {barWidth.ToString("0.##", CultureInfo.InvariantCulture)}%;")"></div>
+                                </div>
+                                <div class="history-values">
+                                    <strong>@FormatCurrency(point.TotalAmount)</strong>
+                                    <span class="history-meta">
+                                        Cash @FormatCurrency(point.CashAmount) · DRIP @FormatCurrency(point.ReinvestedAmount) · @point.PayoutCount.ToString(CultureInfo.InvariantCulture) payout(s)
+                                    </span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </section>
+
+            <section class="section-block" aria-label="Per-holding performance">
+                <h2 class="section-title">Holding Performance</h2>
+                <div class="holdings-grid">
+                    @foreach (var holding in _dashboard.Holdings)
+                    {
+                        var holdingGainClass = holding.UnrealizedGainLoss >= 0m ? "metric-positive" : "metric-negative";
+                        <article class="holding-card">
+                            <header class="holding-card-header">
+                                <div>
+                                    <h3>@holding.SecuritySymbol</h3>
+                                    <p class="holding-name">@holding.SecurityName</p>
+                                </div>
+                                <span class="sector-pill">@holding.SectorName</span>
+                            </header>
+
+                            <p class="holding-context">@holding.PortfolioName · @holding.AccountName</p>
+
+                            <dl class="holding-metrics">
+                                <div>
+                                    <dt>Shares</dt>
+                                    <dd>@holding.TotalShares.ToString("N4", CultureInfo.InvariantCulture)</dd>
+                                </div>
+                                <div>
+                                    <dt>Market Value</dt>
+                                    <dd>@FormatCurrency(holding.MarketValue)</dd>
+                                </div>
+                                <div>
+                                    <dt>Cost Basis</dt>
+                                    <dd>@FormatCurrency(holding.TotalCostBasis)</dd>
+                                </div>
+                                <div>
+                                    <dt>Unrealized G/L</dt>
+                                    <dd class="@holdingGainClass">
+                                        @FormatSignedCurrency(holding.UnrealizedGainLoss) (@FormatPercent(holding.UnrealizedGainLossPercent))
+                                    </dd>
+                                </div>
+                                <div>
+                                    <dt>TTM Dividends</dt>
+                                    <dd>@FormatCurrency(holding.Trailing12MonthDividends)</dd>
+                                </div>
+                                <div>
+                                    <dt>Yield / YoC</dt>
+                                    <dd>@FormatPercent(holding.CurrentYieldPercent) / @FormatPercent(holding.YieldOnCostPercent)</dd>
+                                </div>
+                            </dl>
+                        </article>
+                    }
+                </div>
+            </section>
+        }
+    }
 </section>
 
+@code {
+    private AppInfoDto _appInfo = new("ZeroCool Dividend Tracker", string.Empty, string.Empty);
+    private IReadOnlyList<PortfolioDto> _portfolios = [];
+    private DashboardAnalyticsDto? _dashboard;
+    private long? _selectedPortfolioId;
+    private string _selectedPortfolioIdText = string.Empty;
+    private string? _errorMessage;
+
+    protected override void OnInitialized()
+    {
+        _appInfo = AppInfoService.GetAppInfo();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _portfolios = await PortfolioService.GetPortfoliosAsync();
+        await LoadDashboardAsync();
+    }
+
+    private async Task OnPortfolioFilterChangedAsync(ChangeEventArgs args)
+    {
+        var raw = args.Value?.ToString() ?? string.Empty;
+        _selectedPortfolioIdText = raw;
+        _selectedPortfolioId = string.IsNullOrWhiteSpace(raw)
+            ? null
+            : long.Parse(raw, CultureInfo.InvariantCulture);
+
+        await LoadDashboardAsync();
+    }
+
+    private async Task LoadDashboardAsync()
+    {
+        _errorMessage = null;
+        try
+        {
+            _dashboard = await AnalyticsService.GetDashboardAsync(_selectedPortfolioId);
+        }
+        catch (ArgumentOutOfRangeException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        catch (InvalidOperationException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private RenderFragment RenderAllocationCard(string title, IReadOnlyList<AllocationItemDto> items) => __builder =>
+    {
+        <article class="allocation-card">
+            <h3>@title</h3>
+            <div class="allocation-list">
+                @foreach (var item in items)
+                {
+                    var width = Math.Clamp(item.AllocationPercent, 0m, 100m);
+                    <div class="allocation-row">
+                        <div class="allocation-row-header">
+                            <span>@item.Name</span>
+                            <span>@FormatPercent(item.AllocationPercent) · @FormatCurrency(item.MarketValue)</span>
+                        </div>
+                        <div class="bar-track" aria-hidden="true">
+                            <div class="bar-fill" style="@($"width: {width.ToString("0.##", CultureInfo.InvariantCulture)}%;")"></div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </article>
+    };
+
+    private static string FormatCurrency(decimal amount) =>
+        string.Create(CultureInfo.InvariantCulture, $"${amount:N2}");
+
+    private static string FormatSignedCurrency(decimal amount) =>
+        amount >= 0m
+            ? string.Create(CultureInfo.InvariantCulture, $"+${amount:N2}")
+            : string.Create(CultureInfo.InvariantCulture, $"-${Math.Abs(amount):N2}");
+
+    private static string FormatPercent(decimal percent) =>
+        string.Create(CultureInfo.InvariantCulture, $"{percent:N2}%");
+}
