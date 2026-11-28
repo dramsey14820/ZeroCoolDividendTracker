@@ -1,6 +1,6 @@
 # Slice 08: External Market Data Fetching & Caching
 
-- **Status**: `Ready`
+- **Status**: `In Progress`
 - **Risk**: `High`
 - **Owner / Stage**: Stage 2 (Gemini Mini-Spec) -> Stages 3–5 (Local Ollama) -> Stage 6 (Two-Tier Review)
 
@@ -300,7 +300,7 @@ Feature: External Market Data Fetching and Caching
 
 ## 4. Implementation Subtasks
 
-- [ ] **Red**: Generate xUnit + FluentAssertions + NSubstitute + bUnit tests covering all Gherkin scenarios (`qwen2.5-coder:7b`)
+- [x] **Red**: Generate xUnit + FluentAssertions + NSubstitute + bUnit tests covering all Gherkin scenarios (`qwen2.5-coder:7b`)
 - [ ] **Green**: Implement `MarketData` contracts, providers, `MarketDataService`, SQLite `MarketDividendCache` DDL, DI registration, and `/settings` UI (`qwen2.5-coder:7b`)
 - [ ] **Verify**: Pass `dotnet build -warnaserror` and `dotnet test` (local fixes via `qwen3.5:9b`, max 2 retries)
 - [ ] **Pass-1 Review**: Run local `qwen3.5:9b` review on `git diff --staged`
