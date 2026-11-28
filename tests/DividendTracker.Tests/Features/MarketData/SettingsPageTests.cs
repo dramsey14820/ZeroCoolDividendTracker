@@ -1,4 +1,5 @@
 using Bunit;
+using DividendTracker.Core.Features.Backup;
 using DividendTracker.Core.Features.MarketData;
 using DividendTracker.Shared.UI.Pages;
 using FluentAssertions;
@@ -29,6 +30,7 @@ public sealed class SettingsPageTests : BunitContext
             .Returns(new MarketDataRefreshResultDto(2, 1, 0, Array.Empty<string>()));
 
         Services.AddSingleton(marketDataService);
+        Services.AddSingleton(Substitute.For<IBackupService>());
 
         // Act — Render
         var cut = Render<Settings>();

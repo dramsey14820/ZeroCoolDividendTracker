@@ -1,5 +1,6 @@
 @page "/settings"
 @inject IMarketDataService MarketDataService
+@inject IBackupService BackupService
 
 <section class="settings-page">
     <header class="page-header">
@@ -112,10 +113,128 @@
                 }
             }
         </section>
+
+        <section class="settings-card backup-card" aria-label="JSON backup and restore">
+            <h2>JSON Backup &amp; Restore</h2>
+            <p class="card-description">Export your portfolios, accounts, securities, holdings, buys, and dividends to portable JSON, or restore a backup file. Secret API keys are never exported or overwritten.</p>
+
+            <div class="backup-grid">
+                <div class="backup-panel">
+                    <h3>Export Backup</h3>
+                    <div class="form-actions">
+                        <button id="export-backup-btn"
+                                type="button"
+                                class="btn-primary"
+                                disabled="@_isBusy"
+                                @onclick="ExportBackupAsync">
+                            Export JSON Backup
+                        </button>
+                        @if (!string.IsNullOrWhiteSpace(_exportDownloadHref))
+                        {
+                            <a id="download-backup-link"
+                               class="btn-secondary"
+                               download="dividend-tracker-backup.json"
+                               href="@_exportDownloadHref">
+                                Download .json
+                            </a>
+                        }
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(_exportedJson))
+                    {
+                        <div class="field-group">
+                            <label for="backup-export-json">Exported JSON Preview</label>
+                            <textarea id="backup-export-json"
+                                      class="backup-textarea"
+                                      rows="6"
+                                      readonly
+                                      value="@_exportedJson"></textarea>
+                        </div>
+                    }
+                </div>
+
+                <div class="backup-panel">
+                    <h3>Import Backup</h3>
+                    <div class="field-group">
+                        <label for="backup-import-mode">Import Mode</label>
+                        <select id="backup-import-mode" @bind="_importMode">
+                            <option value="@BackupImportMode.Merge">Merge with existing data (skip duplicates)</option>
+                            <option value="@BackupImportMode.Replace">Replace all existing data (clean restore)</option>
+                        </select>
+                        @if (_importMode == BackupImportMode.Replace)
+                        {
+                            <small class="warning-hint">Replace mode clears existing portfolios, holdings, buys, and dividends before restoring. Your local Market Data API key is preserved.</small>
+                        }
+                        else
+                        {
+                            <small class="field-hint">Merge mode matches existing records by name/symbol and imports only new items.</small>
+                        }
+                    </div>
+
+                    <div class="field-group">
+                        <label for="backup-file-input">Load JSON File</label>
+                        <InputFile id="backup-file-input"
+                                   accept=".json,application/json"
+                                   OnChange="HandleBackupFileSelectedAsync" />
+                    </div>
+
+                    <div class="field-group">
+                        <label for="backup-import-json">Backup JSON Payload</label>
+                        <textarea id="backup-import-json"
+                                  class="backup-textarea"
+                                  rows="6"
+                                  placeholder="Paste backup JSON here or choose a .json file above..."
+                                  @bind="_importJson"></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button id="import-backup-btn"
+                                type="button"
+                                class="btn-primary"
+                                disabled="@_isBusy"
+                                @onclick="ImportBackupAsync">
+                            Import JSON Backup
+                        </button>
+                    </div>
+
+                    @if (_lastImportResult is not null)
+                    {
+                        <div class="import-summary" aria-label="Last import summary">
+                            <div class="summary-stat">
+                                <span class="stat-label">Portfolios</span>
+                                <strong class="stat-value">@_lastImportResult.PortfoliosImported</strong>
+                            </div>
+                            <div class="summary-stat">
+                                <span class="stat-label">Securities</span>
+                                <strong class="stat-value">@_lastImportResult.SecuritiesImported</strong>
+                            </div>
+                            <div class="summary-stat">
+                                <span class="stat-label">Holdings</span>
+                                <strong class="stat-value">@_lastImportResult.HoldingsImported</strong>
+                            </div>
+                            <div class="summary-stat">
+                                <span class="stat-label">Dividends</span>
+                                <strong class="stat-value">@_lastImportResult.DividendPaymentsImported</strong>
+                            </div>
+                            <div class="summary-stat">
+                                <span class="stat-label">Buys</span>
+                                <strong class="stat-value">@_lastImportResult.MarketBuysImported</strong>
+                            </div>
+                            <div class="summary-stat">
+                                <span class="stat-label">Skipped</span>
+                                <strong class="stat-value">@_lastImportResult.SkippedCount</strong>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </section>
     </div>
 </section>
 
 @code {
+    private const long MaxBackupFileBytes = 5 * 1024 * 1024;
+
     private MarketDataProviderType _provider = MarketDataProviderType.YahooFinance;
     private string _apiKey = string.Empty;
     private int _cacheTtlMinutes = 15;
@@ -124,6 +243,12 @@
     private string? _statusMessage;
     private string? _errorMessage;
     private MarketDataRefreshResultDto? _lastRefreshResult;
+
+    private string _exportedJson = string.Empty;
+    private string? _exportDownloadHref;
+    private string _importJson = string.Empty;
+    private BackupImportMode _importMode = BackupImportMode.Merge;
+    private BackupImportResultDto? _lastImportResult;
 
     protected override async Task OnInitializedAsync()
     {
@@ -170,6 +295,67 @@
             _statusMessage = $"Quote refresh complete: {_lastRefreshResult.UpdatedCount} updated, {_lastRefreshResult.CachedCount} cached, {_lastRefreshResult.FailedCount} failed.";
         }
         catch (InvalidOperationException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private async Task ExportBackupAsync()
+    {
+        _errorMessage = null;
+        _statusMessage = null;
+        _isBusy = true;
+
+        try
+        {
+            _exportedJson = await BackupService.ExportJsonAsync();
+            _exportDownloadHref = $"data:application/json;charset=utf-8,{Uri.EscapeDataString(_exportedJson)}";
+            _statusMessage = "JSON backup generated.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private async Task HandleBackupFileSelectedAsync(InputFileChangeEventArgs args)
+    {
+        _errorMessage = null;
+        _statusMessage = null;
+
+        try
+        {
+            await using var stream = args.File.OpenReadStream(MaxBackupFileBytes);
+            using var reader = new StreamReader(stream);
+            _importJson = await reader.ReadToEndAsync();
+            _statusMessage = $"Loaded backup file '{args.File.Name}'.";
+        }
+        catch (IOException ex)
+        {
+            _errorMessage = $"Failed to read backup file: {ex.Message}";
+        }
+    }
+
+    private async Task ImportBackupAsync()
+    {
+        _errorMessage = null;
+        _statusMessage = null;
+        _isBusy = true;
+
+        try
+        {
+            _lastImportResult = await BackupService.ImportJsonAsync(_importJson, _importMode);
+            _statusMessage = $"Backup import ({_lastImportResult.Mode}) complete: {_lastImportResult.PortfoliosImported} portfolios, {_lastImportResult.HoldingsImported} holdings, {_lastImportResult.DividendPaymentsImported} dividends, {_lastImportResult.MarketBuysImported} buys imported ({_lastImportResult.SkippedCount} skipped).";
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidDataException)
         {
             _errorMessage = ex.Message;
         }
