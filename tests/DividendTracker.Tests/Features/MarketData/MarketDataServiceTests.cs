@@ -93,7 +93,7 @@ public sealed class MarketDataServiceTests : IDisposable
     {
         // Arrange
         var (marketData, provider, clock, securities, _, _, _) = await CreateContextAsync();
-        var security = await CreateSecurityAsync(securities, "O", "Realty Income", 50.00m);
+        var security = await CreateSecurityAsync(securities, "O", "Realty Income", 0m);
 
         provider.GetQuoteAsync("O", Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(
@@ -108,7 +108,7 @@ public sealed class MarketDataServiceTests : IDisposable
         first.Price.Should().Be(58.25m);
         first.FromCache.Should().BeFalse();
         await provider.Received(1).GetQuoteAsync("O", Arg.Any<string?>(), Arg.Any<CancellationToken>());
-        (await securities.GetSecurityByIdAsync(security.Id))!.LastPrice.Should().Be(58.25m);
+        (await securities.GetSecuritiesAsync()).Single(s => s.Id == security.Id).LastPrice.Should().Be(58.25m);
 
         // Act 2 — 5 minutes later (within default 15 min TTL) returns cached
         clock.Advance(TimeSpan.FromMinutes(5));
@@ -135,7 +135,7 @@ public sealed class MarketDataServiceTests : IDisposable
         expired.Price.Should().Be(60.00m);
         expired.FromCache.Should().BeFalse();
         await provider.Received(3).GetQuoteAsync("O", Arg.Any<string?>(), Arg.Any<CancellationToken>());
-        (await securities.GetSecurityByIdAsync(security.Id))!.LastPrice.Should().Be(60.00m);
+        (await securities.GetSecuritiesAsync()).Single(s => s.Id == security.Id).LastPrice.Should().Be(60.00m);
     }
 
     [Fact]
@@ -143,8 +143,8 @@ public sealed class MarketDataServiceTests : IDisposable
     {
         // Arrange
         var (marketData, provider, clock, securities, _, _, _) = await CreateContextAsync();
-        var schd = await CreateSecurityAsync(securities, "SCHD", "Schwab US Dividend Equity ETF", 75.00m);
-        _ = await CreateSecurityAsync(securities, "BAD", "Broken Ticker", 10.00m);
+        var schd = await CreateSecurityAsync(securities, "SCHD", "Schwab US Dividend Equity ETF", 0m);
+        _ = await CreateSecurityAsync(securities, "BAD", "Broken Ticker", 0m);
 
         provider.GetQuoteAsync("SCHD", Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(new MarketQuoteDto("SCHD", 82.45m, "Schwab US Dividend Equity ETF", "Yahoo Finance", clock.GetUtcNow(), false));
@@ -159,7 +159,7 @@ public sealed class MarketDataServiceTests : IDisposable
         result.CachedCount.Should().Be(0);
         result.FailedCount.Should().Be(1);
         result.Errors.Should().ContainSingle(e => e.Contains("BAD", StringComparison.OrdinalIgnoreCase));
-        (await securities.GetSecurityByIdAsync(schd.Id))!.LastPrice.Should().Be(82.45m);
+        (await securities.GetSecuritiesAsync()).Single(s => s.Id == schd.Id).LastPrice.Should().Be(82.45m);
     }
 
     [Fact]
@@ -196,7 +196,7 @@ public sealed class MarketDataServiceTests : IDisposable
         firstImport.SkippedCount.Should().Be(1);
         firstImport.Errors.Should().BeEmpty();
 
-        var savedDividends = await dividends.GetDividendsForHoldingAsync(holding.Id);
+        var savedDividends = await dividends.GetDividendsAsync(holdingId: holding.Id);
         savedDividends.Should().ContainSingle();
         savedDividends[0].PaymentDate.Should().Be(new DateOnly(2026, 3, 20));
         savedDividends[0].Amount.Should().Be(8.00m);
@@ -210,7 +210,7 @@ public sealed class MarketDataServiceTests : IDisposable
         // Assert 2
         secondImport.ImportedCount.Should().Be(0);
         secondImport.SkippedCount.Should().Be(2);
-        (await dividends.GetDividendsForHoldingAsync(holding.Id)).Should().ContainSingle();
+        (await dividends.GetDividendsAsync(holdingId: holding.Id)).Should().ContainSingle();
     }
 }
 

@@ -1,0 +1,181 @@
+@page "/settings"
+@inject IMarketDataService MarketDataService
+
+<section class="settings-page">
+    <header class="page-header">
+        <h1>Market Data &amp; Settings</h1>
+        <p class="page-subtitle">Configure your external market data provider, local SQLite cache TTL, and refresh tracked security quotes.</p>
+    </header>
+
+    @if (!string.IsNullOrWhiteSpace(_statusMessage))
+    {
+        <div class="status-banner" role="status">@_statusMessage</div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="error-banner" role="alert">@_errorMessage</div>
+    }
+
+    <div class="settings-grid">
+        <section class="settings-card" aria-label="Market data provider configuration">
+            <h2>Market Data Provider</h2>
+            <form class="settings-form" @onsubmit="SaveSettingsAsync">
+                <div class="field-group">
+                    <label for="market-provider">Provider</label>
+                    <select id="market-provider" @bind="_provider">
+                        <option value="@MarketDataProviderType.YahooFinance">Yahoo Finance (Free, No API Key)</option>
+                        <option value="@MarketDataProviderType.Finnhub">Finnhub (Free API Key)</option>
+                        <option value="@MarketDataProviderType.FinancialModelingPrep">Financial Modeling Prep (Free API Key)</option>
+                    </select>
+                </div>
+
+                <div class="field-group">
+                    <label for="market-api-key">API Key</label>
+                    <input id="market-api-key"
+                           type="password"
+                           autocomplete="off"
+                           placeholder="@(_provider == MarketDataProviderType.YahooFinance ? "Not required for Yahoo Finance" : "Enter your provider API key")"
+                           @bind="_apiKey" />
+                    <small class="field-hint">
+                        @if (_provider == MarketDataProviderType.YahooFinance)
+                        {
+                            <span>Yahoo Finance works out-of-the-box without an API key.</span>
+                        }
+                        else
+                        {
+                            <span>Stored locally in your SQLite database and never logged.</span>
+                        }
+                    </small>
+                </div>
+
+                <div class="field-group">
+                    <label for="market-cache-ttl">Cache TTL (Minutes)</label>
+                    <input id="market-cache-ttl"
+                           type="number"
+                           min="1"
+                           max="1440"
+                           @bind="_cacheTtlMinutes" />
+                    <small class="field-hint">Cached quotes and dividend schedules are reused within this window (1–1440 minutes).</small>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary" disabled="@_isBusy">Save Settings</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="settings-card" aria-label="Quote refresh controls">
+            <h2>Refresh Tracked Quotes</h2>
+            <p class="card-description">Fetch the latest market prices for all tracked securities and update local SQLite cache.</p>
+
+            <label class="checkbox-row" for="force-refresh-toggle">
+                <input id="force-refresh-toggle" type="checkbox" @bind="_forceRefresh" />
+                <span>Force refresh (bypass cache TTL)</span>
+            </label>
+
+            <div class="form-actions">
+                <button id="refresh-all-quotes"
+                        type="button"
+                        class="btn-primary"
+                        disabled="@_isBusy"
+                        @onclick="RefreshAllQuotesAsync">
+                    @(_isBusy ? "Refreshing..." : "Refresh All Quotes")
+                </button>
+            </div>
+
+            @if (_lastRefreshResult is not null)
+            {
+                <div class="refresh-summary" aria-label="Last refresh summary">
+                    <div class="summary-stat">
+                        <span class="stat-label">Updated</span>
+                        <strong class="stat-value">@_lastRefreshResult.UpdatedCount</strong>
+                    </div>
+                    <div class="summary-stat">
+                        <span class="stat-label">Cached</span>
+                        <strong class="stat-value">@_lastRefreshResult.CachedCount</strong>
+                    </div>
+                    <div class="summary-stat">
+                        <span class="stat-label">Failed</span>
+                        <strong class="stat-value">@_lastRefreshResult.FailedCount</strong>
+                    </div>
+                </div>
+
+                @if (_lastRefreshResult.Errors.Count > 0)
+                {
+                    <ul class="error-list" aria-label="Refresh errors">
+                        @foreach (var err in _lastRefreshResult.Errors)
+                        {
+                            <li>@err</li>
+                        }
+                    </ul>
+                }
+            }
+        </section>
+    </div>
+</section>
+
+@code {
+    private MarketDataProviderType _provider = MarketDataProviderType.YahooFinance;
+    private string _apiKey = string.Empty;
+    private int _cacheTtlMinutes = 15;
+    private bool _forceRefresh;
+    private bool _isBusy;
+    private string? _statusMessage;
+    private string? _errorMessage;
+    private MarketDataRefreshResultDto? _lastRefreshResult;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var settings = await MarketDataService.GetSettingsAsync();
+        _provider = settings.Provider;
+        _apiKey = settings.ApiKey;
+        _cacheTtlMinutes = settings.CacheTtlMinutes;
+    }
+
+    private async Task SaveSettingsAsync()
+    {
+        _errorMessage = null;
+        _statusMessage = null;
+        _isBusy = true;
+
+        try
+        {
+            var saved = await MarketDataService.SaveSettingsAsync(
+                new UpdateMarketDataSettingsRequest(_provider, _apiKey, _cacheTtlMinutes));
+            _provider = saved.Provider;
+            _apiKey = saved.ApiKey;
+            _cacheTtlMinutes = saved.CacheTtlMinutes;
+            _statusMessage = "Market data settings saved.";
+        }
+        catch (ArgumentOutOfRangeException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private async Task RefreshAllQuotesAsync()
+    {
+        _errorMessage = null;
+        _statusMessage = null;
+        _isBusy = true;
+
+        try
+        {
+            _lastRefreshResult = await MarketDataService.RefreshAllQuotesAsync(_forceRefresh);
+            _statusMessage = $"Quote refresh complete: {_lastRefreshResult.UpdatedCount} updated, {_lastRefreshResult.CachedCount} cached, {_lastRefreshResult.FailedCount} failed.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+}

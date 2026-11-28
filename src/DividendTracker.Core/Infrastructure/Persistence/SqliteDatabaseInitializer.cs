@@ -95,11 +95,23 @@ public sealed class SqliteDatabaseInitializer : IDatabaseInitializer
             UpdatedUtc TEXT NOT NULL
         );
 
+        CREATE TABLE IF NOT EXISTS MarketDividendCache (
+            Id INTEGER PRIMARY KEY AUTOINCREMENT,
+            Symbol TEXT NOT NULL,
+            ExDividendDate TEXT NOT NULL,
+            PaymentDate TEXT NOT NULL,
+            AmountPerShare TEXT NOT NULL,
+            ProviderName TEXT NOT NULL,
+            FetchedUtc TEXT NOT NULL,
+            UNIQUE (Symbol, PaymentDate, ProviderName)
+        );
+
         CREATE INDEX IF NOT EXISTS IX_Accounts_PortfolioId ON Accounts(PortfolioId);
         CREATE INDEX IF NOT EXISTS IX_Holdings_PortfolioId ON Holdings(PortfolioId);
         CREATE INDEX IF NOT EXISTS IX_Holdings_AccountId ON Holdings(AccountId);
         CREATE INDEX IF NOT EXISTS IX_DividendPayments_HoldingId ON DividendPayments(HoldingId);
         CREATE INDEX IF NOT EXISTS IX_MarketBuys_HoldingId ON MarketBuys(HoldingId);
+        CREATE INDEX IF NOT EXISTS IX_MarketDividendCache_Symbol ON MarketDividendCache(Symbol);
         """;
 
     private const string SeedSql = """

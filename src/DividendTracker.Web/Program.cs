@@ -2,6 +2,7 @@ using DividendTracker.Core.Common;
 using DividendTracker.Core.Features.Analytics;
 using DividendTracker.Core.Features.Dividends;
 using DividendTracker.Core.Features.Holdings;
+using DividendTracker.Core.Features.MarketData;
 using DividendTracker.Core.Features.Portfolios;
 using DividendTracker.Core.Features.Securities;
 using DividendTracker.Core.Infrastructure.Persistence;
@@ -28,6 +29,8 @@ public class Program
         builder.Services.AddHoldingFeature();
         builder.Services.AddDividendFeature();
         builder.Services.AddAnalyticsFeature();
+        builder.Services.AddMarketDataFeature();
+        builder.Services.AddMarketDataFeature();
 
         var app = builder.Build();
 
