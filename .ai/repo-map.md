@@ -17,6 +17,14 @@
 - `src/DividendTracker.Core/Features/Holdings/HoldingService.cs`: public sealed class HoldingService : IHoldingService
 - `src/DividendTracker.Core/Features/Holdings/HoldingServiceCollectionExtensions.cs`: public static class HoldingServiceCollectionExtensions
 - `src/DividendTracker.Core/Features/Holdings/IHoldingService.cs`: public interface IHoldingService
+- `src/DividendTracker.Core/Features/MarketData/FinnhubMarketDataProvider.cs`: public sealed class FinnhubMarketDataProvider : IMarketDataProvider
+- `src/DividendTracker.Core/Features/MarketData/FmpMarketDataProvider.cs`: public sealed class FmpMarketDataProvider : IMarketDataProvider
+- `src/DividendTracker.Core/Features/MarketData/IMarketDataProvider.cs`: public interface IMarketDataProvider
+- `src/DividendTracker.Core/Features/MarketData/IMarketDataService.cs`: public interface IMarketDataService
+- `src/DividendTracker.Core/Features/MarketData/MarketDataDtos.cs`: public enum MarketDataProviderType; public sealed record MarketDataSettingsDto(; public sealed record UpdateMarketDataSettingsRequest(; public sealed record MarketQuoteDto(; public sealed record ExternalDividendEventDto(; public sealed record MarketDataRefreshResultDto(; public sealed record DividendImportResultDto(
+- `src/DividendTracker.Core/Features/MarketData/MarketDataService.cs`: public sealed class MarketDataService : IMarketDataService
+- `src/DividendTracker.Core/Features/MarketData/MarketDataServiceCollectionExtensions.cs`: public static class MarketDataServiceCollectionExtensions
+- `src/DividendTracker.Core/Features/MarketData/YahooFinanceMarketDataProvider.cs`: public sealed class YahooFinanceMarketDataProvider : IMarketDataProvider
 - `src/DividendTracker.Core/Features/Portfolios/IPortfolioService.cs`: public interface IPortfolioService
 - `src/DividendTracker.Core/Features/Portfolios/PortfolioDtos.cs`: public sealed record AccountDto(; public sealed record PortfolioDto(; public sealed record CreatePortfolioRequest(; public sealed record UpdatePortfolioRequest(; public sealed record CreateAccountRequest(; public sealed record UpdateAccountRequest(
 - `src/DividendTracker.Core/Features/Portfolios/PortfolioService.cs`: public sealed class PortfolioService : IPortfolioService
@@ -47,6 +55,9 @@
 - `tests/DividendTracker.Tests/Features/Dividends/DividendsPageTests.cs`: public sealed class DividendsPageTests : BunitContext
 - `tests/DividendTracker.Tests/Features/Holdings/HoldingServiceTests.cs`: public sealed class HoldingServiceTests : IDisposable
 - `tests/DividendTracker.Tests/Features/Holdings/HoldingsPageTests.cs`: public sealed class HoldingsPageTests : BunitContext
+- `tests/DividendTracker.Tests/Features/MarketData/MarketDataProviderTests.cs`: public sealed class MarketDataProviderTests
+- `tests/DividendTracker.Tests/Features/MarketData/MarketDataServiceTests.cs`: public sealed class MarketDataServiceTests : IDisposable
+- `tests/DividendTracker.Tests/Features/MarketData/SettingsPageTests.cs`: public sealed class SettingsPageTests : BunitContext
 - `tests/DividendTracker.Tests/Features/Portfolios/PortfolioServiceTests.cs`: public sealed class PortfolioServiceTests : IDisposable
 - `tests/DividendTracker.Tests/Features/Portfolios/PortfoliosPageTests.cs`: public sealed class PortfoliosPageTests : BunitContext
 - `tests/DividendTracker.Tests/Features/Securities/SecuritiesPageTests.cs`: public sealed class SecuritiesPageTests : BunitContext
@@ -66,6 +77,7 @@
 - `src/DividendTracker.Shared.UI/Pages/Home.razor`: @page "/" | @inject IAppInfoService AppInfoService | @inject IAnalyticsService AnalyticsService | @inject IPortfolioService PortfolioService
 - `src/DividendTracker.Shared.UI/Pages/Portfolios.razor`: @page "/portfolios" | @inject IPortfolioService PortfolioService
 - `src/DividendTracker.Shared.UI/Pages/Securities.razor`: @page "/securities" | @inject ISecurityService SecurityService
+- `src/DividendTracker.Shared.UI/Pages/Settings.razor`: @page "/settings" | @inject IMarketDataService MarketDataService
 - `src/DividendTracker.Shared.UI/Routes.razor`
 - `src/DividendTracker.Web/Components/App.razor`
 
