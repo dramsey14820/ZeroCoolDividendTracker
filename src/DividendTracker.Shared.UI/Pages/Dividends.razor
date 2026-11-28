@@ -1,0 +1,345 @@
+@page "/dividends"
+@using System.Globalization
+@inject IDividendService DividendService
+@inject IHoldingService HoldingService
+@inject IPortfolioService PortfolioService
+
+<section class="dividends-page">
+    <header class="page-header">
+        <div class="header-row">
+            <div>
+                <h1>Dividend Payouts &amp; DRIP</h1>
+                <p class="page-subtitle">Log cash and reinvested dividend payouts and automatically track DRIP share acquisitions.</p>
+            </div>
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label for="portfolio-filter">Portfolio</label>
+                    <select id="portfolio-filter" value="@_filterPortfolioId" @onchange="OnPortfolioFilterChangedAsync">
+                        <option value="">All Portfolios</option>
+                        @foreach (var portfolio in _portfolios)
+                        {
+                            <option value="@portfolio.Id">@portfolio.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="holding-filter">Holding</label>
+                    <select id="holding-filter" value="@_filterHoldingId" @onchange="OnHoldingFilterChangedAsync">
+                        <option value="">All Holdings</option>
+                        @foreach (var holding in FilteredHoldings)
+                        {
+                            <option value="@holding.Id">@holding.SecuritySymbol — @holding.AccountName</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="summary-strip" aria-label="Dividend summary">
+        <div class="summary-item">
+            <span class="summary-label">Total Logged Dividends</span>
+            <span class="summary-value">$@TotalDividends.ToString("F2", CultureInfo.InvariantCulture)</span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-label">Total Payouts</span>
+            <span class="summary-value">@_dividends.Count</span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-label">Reinvested (DRIP)</span>
+            <span class="summary-value">@DripPayoutCount</span>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="error-banner" role="alert">@_errorMessage</div>
+    }
+
+    <section class="form-card" aria-label="Record dividend payout form">
+        <h2>Record Dividend Payout</h2>
+        <form class="record-dividend-form" @onsubmit="RecordDividendAsync">
+            <div class="form-grid">
+                <div class="field-group">
+                    <label for="dividend-holding">Holding</label>
+                    <select id="dividend-holding"
+                            name="holdingId"
+                            value="@_selectedHoldingId"
+                            @onchange="OnSelectedHoldingChanged">
+                        @if (_holdings.Count == 0)
+                        {
+                            <option value="0">No holdings available</option>
+                        }
+                        @foreach (var holding in _holdings)
+                        {
+                            <option value="@holding.Id">@holding.SecuritySymbol — @holding.PortfolioName / @holding.AccountName</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="field-group">
+                    <label for="dividend-payment-date">Payment Date</label>
+                    <input id="dividend-payment-date"
+                           type="date"
+                           name="paymentDate"
+                           @bind="_paymentDate" />
+                </div>
+
+                <div class="field-group">
+                    <label for="dividend-ex-date">Ex-Dividend Date (Optional)</label>
+                    <input id="dividend-ex-date"
+                           type="date"
+                           name="exDividendDate"
+                           @bind="_exDividendDate" />
+                </div>
+
+                <div class="field-group">
+                    <label for="dividend-amount">Amount ($)</label>
+                    <input id="dividend-amount"
+                           type="number"
+                           name="amount"
+                           step="any"
+                           min="0"
+                           placeholder="0.00"
+                           @bind="_amount" />
+                </div>
+
+                <div class="field-group field-span-2">
+                    <label for="dividend-notes">Notes</label>
+                    <input id="dividend-notes"
+                           type="text"
+                           name="notes"
+                           placeholder="e.g., Q1 dividend payout"
+                           @bind="_notes" />
+                </div>
+            </div>
+
+            <label class="checkbox-field" for="dividend-drip">
+                <input id="dividend-drip"
+                       type="checkbox"
+                       name="isReinvested"
+                       @bind="_isReinvested" />
+                <span>Reinvested via DRIP (creates linked DRIP market buy)</span>
+            </label>
+
+            @if (_isReinvested)
+            {
+                <div class="drip-grid">
+                    <div class="field-group">
+                        <label for="drip-price">DRIP Price / Share ($)</label>
+                        <input id="drip-price"
+                               type="number"
+                               name="dripPricePerShare"
+                               step="any"
+                               min="0"
+                               placeholder="Required for DRIP"
+                               @bind="_dripPricePerShare" />
+                    </div>
+                    <div class="field-group">
+                        <label for="drip-shares">DRIP Shares (Optional — auto-calculated if blank)</label>
+                        <input id="drip-shares"
+                               type="number"
+                               name="dripShares"
+                               step="any"
+                               min="0"
+                               placeholder="Auto: Amount / Price"
+                               @bind="_dripShares" />
+                    </div>
+                </div>
+            }
+
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">Record Dividend</button>
+            </div>
+        </form>
+    </section>
+
+    @if (_dividends.Count == 0)
+    {
+        <div class="empty-state">
+            <p>No dividend payouts logged yet. Record your first payout above.</p>
+        </div>
+    }
+    else
+    {
+        <div class="dividends-grid">
+            @foreach (var dividend in _dividends)
+            {
+                <article class="dividend-card">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <span class="symbol-pill">@dividend.SecuritySymbol</span>
+                            <div>
+                                <h2>@dividend.SecurityName</h2>
+                                <p class="holding-location">@dividend.PortfolioName / @dividend.AccountName</p>
+                            </div>
+                        </div>
+                        <div class="card-actions">
+                            <span class="payout-amount">$@dividend.Amount.ToString("F2", CultureInfo.InvariantCulture)</span>
+                            <button type="button"
+                                    class="btn-danger"
+                                    @onclick="() => DeleteDividendAsync(dividend.Id)">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="meta-row">
+                        <span>Paid: <strong>@dividend.PaymentDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</strong></span>
+                        @if (dividend.ExDividendDate is not null)
+                        {
+                            <span>Ex-Div: <strong>@dividend.ExDividendDate.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</strong></span>
+                        }
+                        @if (dividend.IsReinvested)
+                        {
+                            <span class="badge-drip">
+                                DRIP
+                                @if (dividend.DripShares is not null && dividend.DripPricePerShare is not null)
+                                {
+                                    @($" · {dividend.DripShares.Value.ToString("0.####", CultureInfo.InvariantCulture)} sh @ ${dividend.DripPricePerShare.Value.ToString("F2", CultureInfo.InvariantCulture)}")
+                                }
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge-cash">Cash</span>
+                        }
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(dividend.Notes))
+                    {
+                        <p class="dividend-notes">@dividend.Notes</p>
+                    }
+                </article>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    private List<PortfolioDto> _portfolios = [];
+    private List<HoldingDto> _holdings = [];
+    private List<DividendPaymentDto> _dividends = [];
+
+    private long? _filterPortfolioId;
+    private long? _filterHoldingId;
+
+    private long _selectedHoldingId;
+    private DateOnly _paymentDate = DateOnly.FromDateTime(DateTime.UtcNow);
+    private DateOnly? _exDividendDate;
+    private decimal _amount;
+    private string _notes = string.Empty;
+    private bool _isReinvested;
+    private decimal? _dripPricePerShare;
+    private decimal? _dripShares;
+    private string? _errorMessage;
+
+    private IReadOnlyList<HoldingDto> FilteredHoldings =>
+        _filterPortfolioId is null
+            ? _holdings
+            : _holdings.Where(h => h.PortfolioId == _filterPortfolioId.Value).ToList();
+
+    private decimal TotalDividends => _dividends.Sum(d => d.Amount);
+    private int DripPayoutCount => _dividends.Count(d => d.IsReinvested);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _portfolios = (await PortfolioService.GetPortfoliosAsync()).ToList();
+        _holdings = (await HoldingService.GetHoldingsAsync()).ToList();
+
+        if (_holdings.Count > 0)
+        {
+            ApplyHoldingDefaults(_holdings[0]);
+        }
+
+        await RefreshDividendsAsync();
+    }
+
+    private async Task RefreshDividendsAsync()
+    {
+        var items = await DividendService.GetDividendsAsync(_filterPortfolioId, _filterHoldingId);
+        _dividends = items.ToList();
+    }
+
+    private async Task OnPortfolioFilterChangedAsync(ChangeEventArgs e)
+    {
+        _errorMessage = null;
+        var raw = e.Value?.ToString();
+        _filterPortfolioId = long.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)
+            ? parsed
+            : null;
+        _filterHoldingId = null;
+        await RefreshDividendsAsync();
+    }
+
+    private async Task OnHoldingFilterChangedAsync(ChangeEventArgs e)
+    {
+        _errorMessage = null;
+        var raw = e.Value?.ToString();
+        _filterHoldingId = long.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)
+            ? parsed
+            : null;
+        await RefreshDividendsAsync();
+    }
+
+    private void OnSelectedHoldingChanged(ChangeEventArgs e)
+    {
+        var raw = e.Value?.ToString();
+        if (long.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+        {
+            var holding = _holdings.FirstOrDefault(h => h.Id == parsed);
+            if (holding is not null)
+            {
+                ApplyHoldingDefaults(holding);
+            }
+            else
+            {
+                _selectedHoldingId = parsed;
+            }
+        }
+    }
+
+    private void ApplyHoldingDefaults(HoldingDto holding)
+    {
+        _selectedHoldingId = holding.Id;
+        _isReinvested = holding.IsDripEnabled;
+        _dripPricePerShare = holding.LastPrice > 0m ? holding.LastPrice : null;
+        _dripShares = null;
+    }
+
+    private async Task RecordDividendAsync()
+    {
+        _errorMessage = null;
+
+        try
+        {
+            await DividendService.RecordDividendAsync(new RecordDividendRequest(
+                _selectedHoldingId,
+                _paymentDate,
+                _exDividendDate,
+                _amount,
+                _isReinvested,
+                _notes,
+                _isReinvested ? _dripShares : null,
+                _isReinvested ? _dripPricePerShare : null));
+
+            _amount = 0m;
+            _exDividendDate = null;
+            _notes = string.Empty;
+            _dripShares = null;
+            await RefreshDividendsAsync();
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or KeyNotFoundException)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private async Task DeleteDividendAsync(long dividendPaymentId)
+    {
+        _errorMessage = null;
+        await DividendService.DeleteDividendAsync(dividendPaymentId);
+        await RefreshDividendsAsync();
+    }
+}
+
